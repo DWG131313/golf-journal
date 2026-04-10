@@ -2,11 +2,11 @@
 
 ## Overview
 
-A system that extracts coaching knowledge from golf lesson video recordings into a searchable, browsable, and conversational knowledge base. Videos are screen recordings of Toptracer sessions featuring Danny and his golf coach, captured from a phone.
+A system that extracts coaching knowledge from golf video content into a searchable, browsable, and conversational knowledge base. Video sources include Danny's own Toptracer coaching session recordings, YouTube instruction videos, and any other golf video content.
 
 ## Problem
 
-Danny has ~6 lesson recordings (~1.2GB) from coaching sessions on Toptracer. The coaching advice — swing mechanics, drills, data interpretation — is locked inside these videos with no way to search or quickly reference specific tips. Finding "what did my coach say about my driver takeaway?" requires scrubbing through hours of footage.
+Danny has ~6 lesson recordings (~1.2GB) from coaching sessions on Toptracer, plus a growing collection of YouTube golf instruction videos he finds valuable. The coaching advice — swing mechanics, drills, data interpretation — is locked inside these videos with no way to search or quickly reference specific tips. Finding "what did my coach say about my driver takeaway?" or "what did that YouTube video say about lag in the downswing?" requires scrubbing through hours of footage.
 
 ## Goals
 
@@ -65,20 +65,30 @@ Danny has ~6 lesson recordings (~1.2GB) from coaching sessions on Toptracer. The
 
 ### 1. Ingestion Pipeline
 
-A Python CLI tool that processes video files through four stages.
+A Python CLI tool that processes video files through five stages.
+
+#### Stage 0: Video Acquisition
+- **Local files**: Point at a `.mov` or `.mp4` file on disk (existing flow)
+- **YouTube**: Provide a URL → `yt-dlp` downloads the video + metadata (title, channel, description) to `data/downloads/`
+- Each video gets a **source type** tag:
+  - `coaching` — Danny's personal lesson recordings (multi-speaker, Toptracer)
+  - `youtube` — Third-party instruction videos (typically single-speaker)
+  - `other` — Any other video source
+- Source type determines downstream behavior (e.g., whether to run speaker diarization)
 
 #### Stage 1: Audio Extraction
 - **Tool**: `ffmpeg`
-- **Input**: `.mov` file
+- **Input**: `.mov` or `.mp4` file
 - **Output**: `.wav` audio file
 - Straightforward extraction, no processing
 
 #### Stage 2: Transcription + Speaker Diarization
 - **Tool**: `whisperx` (Whisper with word-level timestamps + speaker diarization)
 - **Input**: `.wav` audio file
-- **Output**: JSON transcript with word-level timestamps and speaker labels (Speaker A / Speaker B)
-- After first run, Danny labels which speaker ID is "coach" vs "danny" — this mapping persists for future videos
-- Two consistent speakers makes diarization reliable
+- **Output**: JSON transcript with word-level timestamps and speaker labels
+- **Coaching videos**: Run diarization to separate Danny vs. coach. After first run, Danny labels which speaker ID is which — mapping persists for future videos
+- **YouTube videos**: Typically single-speaker — diarization skipped or labels the single instructor
+- **YouTube metadata** (title, description, channel) stored alongside transcript for richer context
 
 #### Stage 3: Keyframe Extraction
 - **Tool**: `ffmpeg` with scene detection
@@ -135,7 +145,7 @@ All local, file-based for V1.
 
 #### SQLite Database (`data/golf_coach.db`)
 Tables:
-- `lessons` — metadata per video (id, filename, date, duration, processing status)
+- `lessons` — metadata per video (id, filename, date, duration, processing status, source_type [coaching|youtube|other], source_url, source_metadata)
 - `segments` — structured segments from multimodal analysis
 - `chunks` — text chunks for RAG retrieval, with embedding vectors (via sqlite-vec)
 - `processing_log` — token usage, timestamps, status per ingestion run
@@ -143,6 +153,7 @@ Tables:
 #### File System
 ```
 data/
+  downloads/          # YouTube downloads
   frames/{lesson_id}/frame_{timestamp}.png
   audio/{lesson_id}.wav
   transcripts/{lesson_id}.json
@@ -190,7 +201,10 @@ Storage accessed through a clean interface (`src/lib/storage.ts`) so the SQLite 
 - Processing log with timestamps
 
 #### Add New Lesson (`/lessons/new`)
-- Upload/select a video file
+- Two input methods:
+  - **Local file**: Upload/select a `.mov` or `.mp4` file from disk
+  - **YouTube URL**: Paste a URL → `yt-dlp` downloads the video and pulls metadata (title, channel, description)
+- Source type auto-detected (YouTube vs local), can be overridden
 - Dry-run estimate: shows estimated token count and processing time
 - Confirm to start ingestion
 - Progress indicator during processing
@@ -224,7 +238,7 @@ Configuration stored in `config.json`:
 
 | Component | Technology |
 |-----------|-----------|
-| Ingestion CLI | Python (ffmpeg, whisperx, anthropic SDK, sentence-transformers) |
+| Ingestion CLI | Python (ffmpeg, whisperx, yt-dlp, anthropic SDK, sentence-transformers) |
 | Web app | Next.js (App Router) |
 | UI | Tailwind CSS + shadcn/ui |
 | Chat | AI SDK + Claude API |
