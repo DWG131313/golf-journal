@@ -1,0 +1,16 @@
+{
+  "ingestion": {
+    "max_tokens_per_video": 500000,
+    "frames_per_batch": 10,
+    "frame_interval_seconds": 5,
+    "require_confirmation": true
+  },
+  "chat": {
+    "daily_token_limit": null,
+    "model": "claude-sonnet-4.6"
+  },
+  "paths": {
+    "data_dir": "data",
+    "db_path": "data/golf_coach.db"
+  }
+}
