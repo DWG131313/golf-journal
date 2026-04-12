@@ -98,21 +98,39 @@ def analyze_all_segments(
         # Limit frames to config.ingestion.frames_per_batch
         batch_frames = batch_frames[:frames_per_batch]
 
-        # Call analysis
-        result = analyze_batch(
-            transcript_chunk=transcript_chunk,
-            frame_paths=batch_frames,
-            source_type=source_type,
-            start_time=start_time,
-            end_time=end_time,
-            cost_tracker=cost_tracker,
-            source_metadata=source_metadata,
-            model=config.chat.model,
-        )
+        # Call analysis (skip on failure to avoid crashing entire pipeline)
+        try:
+            result = analyze_batch(
+                transcript_chunk=transcript_chunk,
+                frame_paths=batch_frames,
+                source_type=source_type,
+                start_time=start_time,
+                end_time=end_time,
+                cost_tracker=cost_tracker,
+                source_metadata=source_metadata,
+                model=config.chat.model,
+            )
+        except Exception as exc:
+            print(f"  WARNING: Analysis failed for batch {batch_idx + 1}: {exc}")
+            result = {
+                "topic": f"Segment {batch_idx + 1}",
+                "categories": [],
+                "coach_tips": [],
+                "student_observations": [],
+                "visual_context": "",
+                "summary": transcript_chunk[:200],
+            }
+
+        # Skip segments with no coaching value
+        coaching_value = result.get("coaching_value", "high")
+        if coaching_value == "none":
+            print(f"  Batch {batch_idx + 1}/{len(batches)}: "
+                  f"{start_time:.1f}s-{end_time:.1f}s — skipped (no coaching value)")
+            continue
 
         segment = Segment(
             lesson_id=lesson_id,
-            segment_index=batch_idx,
+            segment_index=len(segments),  # re-index to avoid gaps
             start_time=start_time,
             end_time=end_time,
             topic=result.get("topic", ""),
@@ -305,7 +323,11 @@ def process_video(
         print(f"  Chunks: {len(chunks)}")
 
         # --- Finalize ---
-        db.update_lesson_status(lesson_id, "completed")
+        db.conn.execute(
+            "UPDATE lessons SET processing_status = ?, segment_count = ? WHERE id = ?",
+            ("completed", len(segments), lesson_id),
+        )
+        db.conn.commit()
         db.insert_processing_log(ProcessingLog(
             lesson_id=lesson_id,
             stage="ingestion",

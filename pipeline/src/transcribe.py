@@ -2,6 +2,15 @@ import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# PyTorch 2.6+ defaults to weights_only=True in torch.load, which breaks
+# whisperx/pyannote model loading. Force weights_only=False for compatibility.
+import torch
+_original_load = torch.load
+def _patched_load(*args, **kwargs):
+    kwargs["weights_only"] = False
+    return _original_load(*args, **kwargs)
+torch.load = _patched_load
+
 
 def format_transcript(
     raw_segments: List[Dict],
