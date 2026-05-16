@@ -1,0 +1,97 @@
+# Design System — Golf Coach Demo
+
+## Product Context
+- **What this is:** A personal coaching journal — years of TrackMan video lessons transcribed, segmented, tagged, and made semantically searchable.
+- **Who it's for:** Danny. One user. Intimate, not multi-tenant.
+- **Space/industry:** Sits between sports-coaching, personal knowledge bases, and editorial reading interfaces.
+- **Project type:** Personal-knowledge web app — closer to a journal/archive than a SaaS dashboard.
+- **Memorable thing:** *"These aren't records — they're moments."* The shift from data to memory. Every visual choice should serve this.
+
+## Aesthetic Direction
+- **Direction:** Editorial-Quiet — dignified typography, warm neutrals, reverence without preciousness.
+- **Decoration level:** Minimal — typography and whitespace do the work. No icons-in-circles, no gradient blobs, no chrome.
+- **Mood:** Like reading a well-bound notebook of your own coaching history. Slow, warm, trustworthy. The coach's voice gets to land, not compete with UI.
+- **Anti-patterns to avoid:** SaaS-dashboard convergence (Inter + cool zinc + 3-column feature grid), purple gradients, "pill" everything, system-ui fallback as the actual design choice.
+
+## Typography
+- **Display / Hero:** **Fraunces** — warm contemporary serif with optical sizing. Use for `<h1>` page titles, lesson title headers (`Lesson · May 8, 2026`), large numbers/metrics. Weight 400, optical-size soft, tight line-height (1.05–1.15).
+- **Body:** **Geist** — clean modern sans with subtle warmth. Use for paragraph copy, descriptions, list rows, transcripts. Weight 400 normal / 500 emphasis.
+- **UI labels:** **Geist** small caps tracked uppercase (`tracking-wider`) for section headers like "SEGMENTS", "TOPICS". Weight 500, zinc/stone-500.
+- **Data / Tables:** Geist with `tabular-nums` for counts (seg count, topic count, word count). Same family, locked-width digits.
+- **Code / Timestamps:** **JetBrains Mono** — use for clickable timestamp chips (`0:33`), distances in source panels, any technical metadata that should feel like coordinates, not language.
+- **Loading:** Self-host via `next/font/google` for Fraunces + Geist; JetBrains Mono via `next/font/google` as well. Preload display weight only; lazy-load others.
+- **Scale (rem):** xs(0.75) sm(0.875) base(1) lg(1.125) xl(1.25) 2xl(1.5) 3xl(1.875) 4xl(2.25) 5xl(3) — apply Fraunces to 2xl+, Geist to base/sm/xs.
+
+## Color
+- **Approach:** Restrained — neutrals do the work, a single accent for emphasis. No semantic color stack (no error-red / warning-yellow / success-green). Hierarchy comes from weight + opacity, not hue.
+- **Palette (warm neutrals — Tailwind `stone`, not `zinc`):**
+  - Background (dark, default): `stone-950` (#0c0a09) — warm dark, not cool zinc
+  - Surface (cards, panels): `stone-900/40` (#1c1917 @ 40%)
+  - Surface elevated: `stone-900` (#1c1917)
+  - Borders: `stone-800` (#292524)
+  - Primary text: `stone-100` (#e7e5e4)
+  - Secondary text: `stone-400` (#a8a29e)
+  - Tertiary text / labels: `stone-500` (#78716c)
+  - Disabled / faint: `stone-600` (#57534e)
+- **Accent — moss green** (contemplative, golf-adjacent without being on-the-nose):
+  - moss-500: #6b8d5a (default accent — buttons, links, selection)
+  - moss-700: #4d6a3e (pressed, hover-dark)
+  - moss-300: #a3c089 (emphasis text on dark, focused state)
+- **Light mode:** Defer until requested. The product reads better dark — coaching content is often watched in the evening.
+
+## Spacing
+- **Base unit:** 4px
+- **Density:** Comfortable, not compact — generous whitespace earns the editorial feel.
+- **Scale:** 2xs(2) xs(4) sm(8) md(16) lg(24) xl(32) 2xl(48) 3xl(64) 4xl(96)
+- **Vertical rhythm:**
+  - Between major sections on a page: `space-y-10` to `space-y-12`
+  - Between minor sections (e.g., list groups): `space-y-3` to `space-y-4`
+  - Inside cards: `p-4` to `p-5`
+  - Line-height for body prose: 1.65–1.7
+
+## Layout
+- **Approach:** Editorial — generous outer margins, no full-bleed, content can breathe.
+- **Max content width:**
+  - Prose-heavy views (transcript, ask answer): `max-w-2xl` (672px)
+  - Index views (lessons list, topics list): `max-w-4xl` (896px) — current value good
+  - Lesson detail (video + structured content): `max-w-4xl`
+- **Border radius (hierarchical):**
+  - sm: 4px — small chips (timestamp buttons, status chips)
+  - md: 6px — buttons
+  - lg: 8px — cards, list containers
+  - 2xl: 12px — major panels (answer container)
+  - Never: `rounded-full` on everything. Pills only for status badges, never for buttons.
+
+## Motion
+- **Approach:** Minimal-functional — only motion that aids comprehension. No decorative entrance animations.
+- **Easing:** `ease-out` for enter, `ease-in` for exit, `ease-in-out` for movement.
+- **Duration:** micro(80ms) short(180ms) medium(320ms). No "smooth scroll" affectation — instant scrolling for keyboard nav, smooth only for explicit click-to-section.
+- **Hover:** Subtle background shift (`hover:bg-stone-900/80`) on rows. No translate, no scale.
+
+## Component-Level Applications
+
+| Component | Treatment |
+|---|---|
+| Page H1 | Fraunces 3xl–4xl, weight 400, stone-100, optical-size soft |
+| Section labels (`SEGMENTS`, `TOPICS`) | Geist xs, weight 500, uppercase, tracking-wider, stone-500 |
+| Lesson row date | Geist sm, weight 500, stone-200; status chip stone-800 bg, stone-400 text |
+| Lesson row filename | Geist xs, stone-500, truncated |
+| Lesson card metrics | Geist sm, tabular-nums, stone-400 |
+| Timestamp chip | JetBrains Mono xs in stone-800 bg, stone-200 text, rounded sm, hover stone-700 |
+| Topic chip | Geist xs, weight 500, uppercase tracked, stone-700 bg, stone-300 text, rounded sm |
+| Quote (coach said …) | Geist sm italic, stone-400, leading-relaxed |
+| Citations [1] [2] | Fraunces sm, stone-500 |
+| Answer prose (ask page) | Geist base, stone-100, line-height 1.7 |
+| Primary button (Ask) | Stone-100 bg, stone-900 text, rounded md, weight 500 — keep monochrome, not moss |
+| Active/selected (e.g., a chosen filter pill) | moss-500 ring, moss-300 text |
+
+## Risks taken (deliberate departures from convention)
+1. **Warm stone instead of cool zinc.** Every AI-generated dashboard uses zinc/slate. Stone is immediately distinguishable and matches the personal-journal framing.
+2. **Serif for display.** The category convention is sans-everywhere. Fraunces for hero/title earns the "this is content, not data" feeling.
+3. **No semantic color stack.** No green-success, no red-error. The product is contemplative, not transactional — nothing here is urgent. Hierarchy through weight and opacity only.
+4. **Moss as the only accent.** Single color, deliberately. Golf-adjacent without being literal.
+
+## Decisions Log
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-05-15 | Initial design system: Editorial-Quiet | Personal journal use case; differentiates from SaaS convergence; warm + dignified reflects "moments, not records" framing |

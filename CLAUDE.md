@@ -42,6 +42,12 @@ pipeline/.venv/bin/python -m pytest pipeline/tests/ -v
 - `docs/superpowers/specs/` — Design spec and implementation plan
 - `Recordings/` — 6 local coaching sessions (~1.2GB, gitignored)
 
+## Design System
+Always read `DESIGN.md` at the project root before making any visual or UI decisions.
+All font choices, colors, spacing, and aesthetic direction are defined there.
+Do not deviate without explicit user approval. In QA/review, flag any code that
+doesn't match DESIGN.md.
+
 ## Claude Code Knowledge Base
 
 When you need to leverage Claude Code's advanced capabilities — hooks, custom agents, skills, permission patterns, multi-agent orchestration, or SDK usage — reference the central learnings at:
