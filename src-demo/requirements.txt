@@ -1,0 +1,5 @@
+sqlite-vec>=0.1.6
+mlx-whisper>=0.4.0
+anthropic>=0.40.0
+sentence-transformers>=3.0.0
+python-dotenv>=1.0.0
