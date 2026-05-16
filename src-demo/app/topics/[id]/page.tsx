@@ -5,25 +5,25 @@ import {
   type TopicLessonMention,
 } from "@/lib/db";
 
-function formatDate(s: string | null): string {
-  if (!s) return "Unknown date";
-  const d = new Date(s);
-  return d.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+function fmtDayNum(s: string | null): string {
+  if (!s) return "—";
+  return String(new Date(s).getDate());
 }
 
-function formatTimestamp(seconds: number): string {
+function fmtMonthUpper(s: string | null): string {
+  if (!s) return "";
+  return new Date(s).toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+}
+
+function fmtYear(s: string | null): string {
+  if (!s) return "";
+  return String(new Date(s).getFullYear());
+}
+
+function fmtTimestamp(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-function truncateFilename(filename: string, maxLen = 60): string {
-  if (filename.length <= maxLen) return filename;
-  return "…" + filename.slice(-(maxLen - 1));
 }
 
 type LessonGroup = {
@@ -46,7 +46,6 @@ function groupByLesson(mentions: TopicLessonMention[]): LessonGroup[] {
     }
     map.get(m.video_id)!.mentions.push(m);
   }
-  // mentions are already sorted by recorded_at DESC, start_seconds ASC
   return Array.from(map.values());
 }
 
@@ -66,81 +65,84 @@ export default async function TopicDetailPage({
   const groups = groupByLesson(mentions);
 
   return (
-    <main className="space-y-10">
-      <header className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-3xl font-semibold">{topic.name}</h1>
-          <a href="/topics" className="text-sm text-zinc-400 hover:text-zinc-100">
-            ← All topics
-          </a>
-        </div>
-        <div className="flex items-center gap-3">
-          {topic.category && (
-            <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs uppercase tracking-wider text-zinc-400">
-              {topic.category}
-            </span>
-          )}
-          <p className="text-zinc-400">
-            {mentions.length} mention{mentions.length !== 1 ? "s" : ""} across{" "}
-            {groups.length} lesson{groups.length !== 1 ? "s" : ""}
-          </p>
-        </div>
+    <main className="mx-auto max-w-4xl px-6 pb-24 pt-10">
+      <a
+        href="/topics"
+        className="small-caps text-xs text-stone-500 transition-colors hover:text-stone-200"
+      >
+        ← All topics
+      </a>
+
+      {/* Topic masthead */}
+      <header className="mt-8 border-b border-stone-900 pb-10">
+        {topic.category && (
+          <p className="small-caps text-xs text-stone-500">{topic.category}</p>
+        )}
+        <h1 className="mt-3 font-serif text-5xl leading-tight text-stone-100 md:text-6xl">
+          {topic.name}
+        </h1>
+        <p className="mt-5 font-serif text-lg italic text-stone-400">
+          {mentions.length} mention{mentions.length !== 1 ? "s" : ""} across{" "}
+          {groups.length} lesson{groups.length !== 1 ? "s" : ""}
+        </p>
       </header>
 
       {groups.length === 0 ? (
-        <p className="text-zinc-500">No mentions recorded for this topic.</p>
+        <p className="mt-12 text-stone-500">No mentions recorded for this topic.</p>
       ) : (
-        <section className="space-y-6">
+        <section className="mt-12 space-y-12">
           {groups.map((g) => (
-            <div
-              key={g.video_id}
-              className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/40"
-            >
-              {/* Lesson group header */}
-              <div className="flex items-baseline justify-between gap-4 border-b border-zinc-800 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium text-zinc-200">
-                    {formatDate(g.recorded_at)}
-                  </span>
-                  <p className="mt-0.5 truncate text-xs text-zinc-500">
-                    {truncateFilename(g.filename)}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs tabular-nums text-zinc-500">
-                  {g.mentions.length} mention{g.mentions.length !== 1 ? "s" : ""}
-                </span>
-              </div>
+            <article key={g.video_id} className="grid grid-cols-[auto_1fr] gap-x-8">
+              {/* Date display */}
+              <a
+                href={`/lessons/${g.video_id}`}
+                className="group block pt-1"
+                title="Open lesson"
+              >
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-stone-500">
+                  {fmtMonthUpper(g.recorded_at)}
+                </p>
+                <p className="mt-1 font-serif text-5xl leading-none text-stone-200 tabular-nums transition-colors group-hover:text-moss-300">
+                  {fmtDayNum(g.recorded_at)}
+                </p>
+                <p className="mt-1 font-mono text-[10px] tracking-[0.18em] text-stone-700">
+                  {fmtYear(g.recorded_at)}
+                </p>
+              </a>
 
-              {/* Mention rows */}
-              <ul className="divide-y divide-zinc-800">
+              {/* Mentions in this lesson */}
+              <ol className="space-y-5 border-l border-stone-900 pl-6">
                 {g.mentions.map((m, i) => (
-                  <li key={i} className="flex items-start gap-3 px-4 py-3">
+                  <li key={i}>
                     <a
                       href={`/lessons/${m.video_id}?t=${Math.floor(m.start_seconds)}`}
-                      className="shrink-0 rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs text-zinc-300 hover:bg-zinc-700 hover:text-zinc-100"
-                      title="Jump to this moment in the lesson"
+                      className="group block"
                     >
-                      {formatTimestamp(m.start_seconds)}
-                    </a>
-                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-baseline gap-3 text-xs">
+                        <span className="font-mono tabular-nums text-stone-500 transition-colors group-hover:text-moss-300">
+                          {fmtTimestamp(m.start_seconds)}
+                        </span>
+                        {m.segment_title && (
+                          <span className="font-serif italic text-stone-400">
+                            {m.segment_title}
+                          </span>
+                        )}
+                        {m.speaker && (
+                          <span className="small-caps text-[10px] text-stone-600">
+                            {m.speaker}
+                          </span>
+                        )}
+                      </div>
                       {m.quote && (
-                        <p className="text-sm italic text-zinc-300">
+                        <p className="mt-2 font-serif italic leading-relaxed text-stone-300 transition-colors group-hover:text-stone-100">
                           &ldquo;{m.quote}&rdquo;
                         </p>
                       )}
-                      {m.segment_title && (
-                        <p className="text-xs text-zinc-500">{m.segment_title}</p>
-                      )}
-                    </div>
-                    {m.speaker && (
-                      <span className="shrink-0 text-xs text-zinc-500">
-                        {m.speaker}
-                      </span>
-                    )}
+                    </a>
                   </li>
                 ))}
-              </ul>
-            </div>
+              </ol>
+            </article>
           ))}
         </section>
       )}

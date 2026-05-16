@@ -1,64 +1,107 @@
 import { listTopicsWithMentionCounts } from "@/lib/db";
 
+// Category display order (uncategorized last)
+const CATEGORY_ORDER = [
+  "fundamentals",
+  "mechanics",
+  "mental",
+  "short-game",
+  "putting",
+  "equipment",
+];
+
+function categoryRank(c: string | null): number {
+  if (!c) return 999;
+  const idx = CATEGORY_ORDER.indexOf(c.toLowerCase());
+  return idx === -1 ? 998 : idx;
+}
+
+function categoryLabel(c: string | null): string {
+  if (!c) return "Other";
+  return c.charAt(0).toUpperCase() + c.slice(1);
+}
+
 export default function TopicsPage() {
   const topics = listTopicsWithMentionCounts();
 
-  // Count distinct lessons across all topics (for subtitle)
+  // Group by category
+  const groups = new Map<
+    string,
+    { label: string; rank: number; topics: typeof topics }
+  >();
+  for (const t of topics) {
+    const key = (t.category ?? "other").toLowerCase();
+    if (!groups.has(key)) {
+      groups.set(key, {
+        label: categoryLabel(t.category),
+        rank: categoryRank(t.category),
+        topics: [],
+      });
+    }
+    groups.get(key)!.topics.push(t);
+  }
+  const sortedGroups = Array.from(groups.values()).sort(
+    (a, b) => a.rank - b.rank,
+  );
+
+  // Total counts for the masthead
+  const totalMentions = topics.reduce((s, t) => s + t.mention_count, 0);
   const totalLessons = new Set(
-    topics.flatMap(() => []),
+    topics.flatMap(() => []), // placeholder
   ).size;
-  void totalLessons; // computed per-topic instead; use topics.length for topic count
+  void totalLessons;
+
+  // Mention-count scale for typographic emphasis within each category
+  const maxMentions = Math.max(...topics.map((t) => t.mention_count), 1);
 
   return (
-    <main className="space-y-10">
-      <header className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-3xl font-semibold">Topics</h1>
-          <a href="/" className="text-sm text-zinc-400 hover:text-zinc-100">
-            ← All lessons
-          </a>
-        </div>
-        <p className="text-zinc-400">
-          {topics.length} topics across your coaching knowledge base
+    <main className="mx-auto max-w-5xl px-6 pb-24 pt-12 md:pt-20">
+      {/* Masthead */}
+      <header className="border-b border-stone-900 pb-10">
+        <p className="small-caps text-xs text-stone-500">Concepts your coaches have taught</p>
+        <p className="mt-6 font-serif text-3xl italic leading-tight text-stone-200 md:text-4xl">
+          {topics.length} topics · {totalMentions} mentions
         </p>
       </header>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
-          All Topics
-        </h2>
-        {topics.length === 0 ? (
-          <p className="text-zinc-500">No topics yet — run the ingest pipeline.</p>
-        ) : (
-          <ul className="divide-y divide-zinc-800 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/40">
-            {topics.map((t) => (
-              <li key={t.topic_id}>
-                <a
-                  href={`/topics/${t.topic_id}`}
-                  className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-900/80"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-zinc-200">
-                        {t.name}
+      {topics.length === 0 ? (
+        <p className="mt-12 text-stone-500">
+          No topics yet — run the ingest pipeline.
+        </p>
+      ) : (
+        <div className="mt-14 space-y-16">
+          {sortedGroups.map((g) => (
+            <section key={g.label}>
+              <header className="flex items-baseline justify-between border-b border-stone-900 pb-3">
+                <h2 className="font-serif text-xl text-stone-300">{g.label}</h2>
+                <span className="small-caps text-[11px] text-stone-600 tabular-nums">
+                  {g.topics.length} {g.topics.length === 1 ? "topic" : "topics"}
+                </span>
+              </header>
+              <div className="mt-6 flex flex-wrap items-baseline gap-x-7 gap-y-3">
+                {g.topics.map((t) => {
+                  // Typographic emphasis: larger for more-mentioned topics
+                  const ratio = t.mention_count / maxMentions;
+                  const scale = 0.95 + ratio * 0.95; // 0.95rem → 1.9rem
+                  return (
+                    <a
+                      key={t.topic_id}
+                      href={`/topics/${t.topic_id}`}
+                      className="group inline-flex items-baseline gap-1.5 font-serif italic leading-tight text-stone-300 transition-colors hover:text-moss-300"
+                      style={{ fontSize: `${scale}rem` }}
+                    >
+                      <span>{t.name}</span>
+                      <span className="font-sans text-[10px] not-italic tabular-nums text-stone-600 group-hover:text-stone-400">
+                        {t.mention_count}
                       </span>
-                      {t.category && (
-                        <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-zinc-400">
-                          {t.category}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-6 text-sm tabular-nums text-zinc-400">
-                    <span title="total mentions">{t.mention_count} mention{t.mention_count !== 1 ? "s" : ""}</span>
-                    <span title="lessons">{t.lesson_count} lesson{t.lesson_count !== 1 ? "s" : ""}</span>
-                  </div>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                    </a>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

@@ -1,1 +1,44 @@
 @import "tailwindcss";
+
+/* Tailwind v4 theme tokens — these define design primitives and emit
+   matching utility classes (font-sans / font-serif / font-mono /
+   text-moss-500 / bg-moss-500 / border-moss-700, etc.). */
+@theme {
+  --font-sans: var(--font-sans-body), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif-display), ui-serif, Georgia, serif;
+  --font-mono: var(--font-mono-code), ui-monospace, SFMono-Regular, monospace;
+
+  /* Moss-green accent — single accent color per DESIGN.md.
+     Deep, contemplative, golf-adjacent without being literal. */
+  --color-moss-300: #a3c089;
+  --color-moss-500: #6b8d5a;
+  --color-moss-700: #4d6a3e;
+}
+
+/* Paper-grain texture on the body — barely-perceptible noise that gives
+   the page the feel of off-white paper under dim light. SVG inline so
+   no extra request. */
+@layer base {
+  body {
+    background-color: #0c0a09; /* stone-950 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+  }
+
+  /* Editorial italic — Instrument Serif's italic is a feature, not a fallback.
+     Use it explicitly via the .italic-serif class to switch fonts mid-flow. */
+  .italic-serif {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-feature-settings: "ss01";
+  }
+}
+
+/* Small caps utility for editorial section labels and footnote markers.
+   Tailwind v4 doesn't ship small-caps out of the box. */
+@layer utilities {
+  .small-caps {
+    font-variant: all-small-caps;
+    letter-spacing: 0.06em;
+  }
+}

@@ -15,6 +15,13 @@ Items deferred during the build session. Order is rough priority within each sec
 - **HackMotion drill catalog scrape** — public, server-rendered. Sample blocked when running as a subagent (no Bash perms). Do inline or grant subagent perms.
 - **TrackMan University manual extraction** — free account, ~50–80 named concepts, a few hours' work. Login-walled so no scrape path.
 
+## Design polish
+- **Fraunces WONK axis rendering** — at display sizes (text-4xl on the home page H1), Fraunces renders with decorative WONK alternates (swashy G, curly J, flared u). The intended fix `font-variation-settings: "opsz" 24, "SOFT" 0, "WONK" 0` is in `globals.css` but Tailwind v4 strips it from the compiled output. Three viable fixes: (a) wrap the rule in `@layer utilities { ... }`, (b) inline `style={{ fontVariationSettings: '"opsz" 24, "SOFT" 0, "WONK" 0' }}` on every H1 element, or (c) swap Fraunces for Instrument Serif (single-weight, no quirky axes — listed as the alternative in DESIGN.md anyway).
+- **Date stamps in lesson rows** — currently render in Geist; per DESIGN.md they could be Fraunces small caps for more editorial feel.
+- **Subtle paper-grain texture on cards** — per DESIGN.md, not yet applied.
+- **More moss touchpoints** — currently only on ask-page focus border. Citations [1] in answer text, active-state pills, and the "currently playing" cue on video player could pick up moss.
+- **Tighter line-height + spacing on ask page prose** — line-height 1.7 per DESIGN.md.
+
 ## Dashboard UI
 - **Lesson detail page** (`/lessons/[id]`) — title, summary, segments timeline, topic mentions with clickable timestamps, embedded video player with deep-link to a moment.
 - **Topics index** (`/topics`) — every named topic across all lessons, with mention count + click-through to filtered lessons.

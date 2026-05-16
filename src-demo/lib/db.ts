@@ -227,3 +227,126 @@ export function getTopicById(id: number): TopicRow | null {
     .get(id) as TopicRow | undefined;
   return row ?? null;
 }
+
+// ----------------------------------------------------------------------
+// Display helpers — used by editorial pages
+// ----------------------------------------------------------------------
+
+// Bulk lookup of the first segment's title for a set of videos. Avoids
+// N+1 queries on the home page when we want a "headline" per lesson.
+export function getFirstSegmentTitles(
+  videoIds: number[],
+): Map<number, string | null> {
+  const map = new Map<number, string | null>();
+  if (videoIds.length === 0) return map;
+  const placeholders = videoIds.map(() => "?").join(",");
+  const rows = getDb()
+    .prepare(
+      `SELECT s.video_id, s.title
+       FROM segments s
+       JOIN (
+         SELECT video_id, MIN(start_seconds) AS first_s
+         FROM segments
+         WHERE video_id IN (${placeholders})
+         GROUP BY video_id
+       ) firsts
+         ON s.video_id = firsts.video_id AND s.start_seconds = firsts.first_s`,
+    )
+    .all(...videoIds) as { video_id: number; title: string | null }[];
+  for (const r of rows) map.set(r.video_id, r.title);
+  return map;
+}
+
+// First segment summary for a single video — used as the lesson's
+// "headline" on the detail page and featured-card on the home page.
+export function getFirstSegmentForVideo(videoId: number): {
+  title: string | null;
+  summary: string | null;
+} | null {
+  const row = getDb()
+    .prepare(
+      `SELECT title, summary FROM segments WHERE video_id = ?
+       ORDER BY start_seconds LIMIT 1`,
+    )
+    .get(videoId) as { title: string | null; summary: string | null } | undefined;
+  return row ?? null;
+}
+
+// Practice themes: topics in the most recent N lessons, ranked by frequency,
+// with the date of the most recent mention. Replaces the previous topic-cloud
+// view with a scannable, comparable list. Used on the home page.
+export type PracticeTheme = {
+  topic_id: number;
+  name: string;
+  category: string | null;
+  mention_count: number;
+  last_mentioned_at: string | null;
+};
+
+export function listPracticeThemes(
+  lessonCount: number = 5,
+  limit: number = 7,
+): PracticeTheme[] {
+  return getDb()
+    .prepare(
+      `WITH recent AS (
+         SELECT id FROM videos
+         WHERE status IN ('analyzed','embedded')
+         ORDER BY recorded_at DESC LIMIT ?
+       )
+       SELECT t.id AS topic_id, t.name, t.category,
+              COUNT(tm.id) AS mention_count,
+              MAX(v.recorded_at) AS last_mentioned_at
+       FROM topic_mentions tm
+       JOIN topics t ON t.id = tm.topic_id
+       JOIN videos v ON v.id = tm.video_id
+       WHERE tm.video_id IN (SELECT id FROM recent)
+       GROUP BY t.id
+       ORDER BY mention_count DESC, last_mentioned_at DESC
+       LIMIT ?`,
+    )
+    .all(lessonCount, limit) as PracticeTheme[];
+}
+
+// Drills surfaced in recent lessons — actionable practice prescriptions.
+// Sparse data right now (5 mentions across 19 lessons) but valuable when present.
+export type RecentDrill = {
+  drill_id: number;
+  name: string;
+  category: string | null;
+  description: string | null;
+  last_mentioned_at: string | null;
+  video_id: number;
+  start_seconds: number;
+};
+
+export function listRecentDrills(
+  lessonCount: number = 12,
+  limit: number = 6,
+): RecentDrill[] {
+  return getDb()
+    .prepare(
+      `WITH recent AS (
+         SELECT id FROM videos
+         WHERE status IN ('analyzed','embedded')
+         ORDER BY recorded_at DESC LIMIT ?
+       ),
+       latest_per_drill AS (
+         SELECT d.id AS drill_id, d.name, d.category, d.description,
+                MAX(v.recorded_at) AS last_mentioned_at,
+                MAX(dm.id) AS last_mention_id
+         FROM drill_mentions dm
+         JOIN drills d ON d.id = dm.drill_id
+         JOIN videos v ON v.id = dm.video_id
+         WHERE dm.video_id IN (SELECT id FROM recent)
+         GROUP BY d.id
+       )
+       SELECT l.drill_id, l.name, l.category, l.description, l.last_mentioned_at,
+              dm.video_id, dm.start_seconds
+       FROM latest_per_drill l
+       JOIN drill_mentions dm ON dm.id = l.last_mention_id
+       ORDER BY l.last_mentioned_at DESC
+       LIMIT ?`,
+    )
+    .all(lessonCount, limit) as RecentDrill[];
+}
