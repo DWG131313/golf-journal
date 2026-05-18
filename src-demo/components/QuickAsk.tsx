@@ -24,7 +24,7 @@ export default function QuickAsk() {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Ask anything in plain English…"
-        className="w-full bg-transparent py-5 pr-20 font-serif text-lg italic text-stone-100 placeholder:text-stone-700 focus:outline-none md:pr-32 md:text-3xl"
+        className="w-full bg-transparent py-5 pr-20 font-serif text-lg italic text-stone-100 placeholder:text-stone-500 focus:outline-none md:pr-32 md:text-3xl"
       />
       <button
         type="submit"

@@ -100,7 +100,7 @@ export default function HomePage() {
 
       {/* QUICK ASK — primary affordance, top of page ----------------- */}
       <section className="mt-10 border-y border-stone-900 py-8">
-        <p className="small-caps mb-2 text-[11px] text-stone-500">Search the archive</p>
+        <p className="small-caps mb-2 text-xs text-stone-400">Search the archive</p>
         <QuickAsk />
       </section>
 
@@ -108,8 +108,8 @@ export default function HomePage() {
       {recent && (
         <section className="mt-14">
           <div className="flex items-baseline justify-between border-b border-stone-900 pb-3">
-            <p className="small-caps text-[11px] text-stone-500">Most recent lesson</p>
-            <p className="font-mono text-[10px] tracking-[0.18em] text-stone-600">
+            <p className="small-caps text-xs text-stone-400">Most recent lesson</p>
+            <p className="font-mono text-xs tracking-[0.18em] text-stone-400">
               {fmtMonthYear(recent.recorded_at)}
             </p>
           </div>
@@ -118,13 +118,13 @@ export default function HomePage() {
             className="group mt-6 grid grid-cols-[auto_1fr] gap-x-8 md:gap-x-10"
           >
             <div className="pt-1">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-stone-500">
+              <p className="font-mono text-xs uppercase tracking-[0.22em] text-stone-400">
                 {fmtMonthShortUpper(recent.recorded_at)}
               </p>
               <p className="mt-0.5 font-serif text-5xl leading-none text-stone-100 tabular-nums md:text-6xl">
                 {fmtDay(recent.recorded_at)}
               </p>
-              <p className="mt-1.5 font-mono text-[10px] tracking-[0.18em] text-stone-600">
+              <p className="mt-1.5 font-mono text-xs tracking-[0.18em] text-stone-400">
                 {fmtYear(recent.recorded_at)} · {fmtTime(recent.recorded_at)}
               </p>
             </div>
@@ -135,11 +135,11 @@ export default function HomePage() {
                 </h2>
               )}
               {recentSegment?.summary && (
-                <p className="mt-3 max-w-prose text-sm leading-relaxed text-stone-400 md:text-base">
+                <p className="mt-3 max-w-prose text-base leading-relaxed text-stone-300 md:text-lg">
                   {recentSegment.summary}
                 </p>
               )}
-              <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs text-stone-500 tabular-nums">
+              <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-stone-400 tabular-nums">
                 <span>{recent.segment_count} segments</span>
                 <span className="text-stone-800">·</span>
                 <span>{recent.topic_count} topics</span>
@@ -159,8 +159,8 @@ export default function HomePage() {
       {themes.length > 0 && (
         <section className="mt-14">
           <div className="flex items-baseline justify-between border-b border-stone-900 pb-3">
-            <p className="small-caps text-[11px] text-stone-500">Practice themes</p>
-            <p className="font-mono text-[10px] tracking-[0.18em] text-stone-600">
+            <p className="small-caps text-xs text-stone-400">Practice themes</p>
+            <p className="font-mono text-xs tracking-[0.18em] text-stone-400">
               FROM YOUR LAST 5 LESSONS
             </p>
           </div>
@@ -177,7 +177,7 @@ export default function HomePage() {
                   <span className="font-serif text-lg italic text-stone-200 transition-colors group-hover:text-moss-300">
                     {t.name}
                   </span>
-                  <span className="font-mono text-xs tabular-nums text-stone-400">
+                  <span className="font-mono text-sm tabular-nums text-stone-300">
                     {t.mention_count}
                   </span>
                   <span
@@ -192,7 +192,7 @@ export default function HomePage() {
           </ul>
           <a
             href="/topics"
-            className="small-caps mt-4 inline-block text-[11px] text-stone-500 transition-colors hover:text-stone-200"
+            className="small-caps mt-4 inline-block text-xs text-stone-400 transition-colors hover:text-stone-200"
           >
             View all themes →
           </a>
@@ -203,8 +203,8 @@ export default function HomePage() {
       {drills.length > 0 && (
         <section className="mt-14">
           <div className="flex items-baseline justify-between border-b border-stone-900 pb-3">
-            <p className="small-caps text-[11px] text-stone-500">Drills to remember</p>
-            <p className="font-mono text-[10px] tracking-[0.18em] text-stone-600">
+            <p className="small-caps text-xs text-stone-400">Drills to remember</p>
+            <p className="font-mono text-xs tracking-[0.18em] text-stone-400">
               FROM RECENT LESSONS
             </p>
           </div>
@@ -218,13 +218,13 @@ export default function HomePage() {
                   <p className="font-serif text-lg text-stone-200 transition-colors group-hover:text-moss-300">
                     {d.name}
                   </p>
-                  <div className="mt-1 flex items-baseline gap-3 text-xs text-stone-500">
+                  <div className="mt-1 flex items-baseline gap-3 text-sm text-stone-400">
                     {d.category && (
-                      <span className="small-caps text-[10px] text-stone-600">
+                      <span className="small-caps text-xs text-stone-400">
                         {d.category}
                       </span>
                     )}
-                    <span className="font-mono tabular-nums text-stone-500">
+                    <span className="font-mono tabular-nums text-stone-400">
                       {fmtMonthDay(d.last_mentioned_at)} · {fmtTimestamp(d.start_seconds)}
                     </span>
                   </div>
@@ -239,7 +239,7 @@ export default function HomePage() {
       <section className="mt-16 border-t border-stone-900 pt-10">
         <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
           <div>
-            <p className="small-caps text-[11px] text-stone-500">The whole collection</p>
+            <p className="small-caps text-xs text-stone-400">The whole collection</p>
             <p className="mt-3 font-serif text-2xl italic leading-snug text-stone-300 md:text-3xl">
               {all.length} lessons · {monthsCount} months · {totalSegments} segments · {totalTopicMentions} topic mentions
             </p>
@@ -254,7 +254,7 @@ export default function HomePage() {
             </a>
             <a
               href="/topics"
-              className="small-caps text-[11px] text-stone-500 transition-colors hover:text-stone-200"
+              className="small-caps text-xs text-stone-400 transition-colors hover:text-stone-200"
             >
               or by topic →
             </a>
