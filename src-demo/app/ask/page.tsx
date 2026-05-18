@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 type Source = {
   chunk_id: number;
   video_id: number;
+  session_id: number;
   filename: string;
   recorded_at: string | null;
   segment_title: string | null;
@@ -121,7 +122,7 @@ export default function AskPage() {
     <main className="mx-auto max-w-3xl px-6 pb-24 pt-12">
       {/* Masthead */}
       <header className="border-b border-stone-900 pb-10">
-        <p className="small-caps text-xs text-stone-400">Ask your coach</p>
+        <p className="small-caps text-base text-stone-400">Ask your coach</p>
         <p className="mt-6 font-serif text-3xl italic leading-tight text-stone-200 md:text-4xl">
           A search across every lesson, in your coach&apos;s own words.
         </p>
@@ -142,12 +143,12 @@ export default function AskPage() {
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="small-caps text-xs text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-500"
+            className="small-caps text-base text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-500"
           >
             {loading ? "Searching the journal…" : "Ask →"}
           </button>
           {result && (
-            <span className="font-mono text-xs text-stone-400">
+            <span className="font-mono text-sm text-stone-400">
               {result.inputTokens}↓ {result.outputTokens}↑ tokens
             </span>
           )}
@@ -157,7 +158,7 @@ export default function AskPage() {
       {/* Examples */}
       {!result && !loading && (
         <section className="mt-12">
-          <p className="small-caps text-xs text-stone-400">Try, for instance</p>
+          <p className="small-caps text-base text-stone-400">Try, for instance</p>
           <ul className="mt-4 space-y-2 font-serif italic text-stone-400">
             {EXAMPLE_QUERIES.map((q) => (
               <li key={q}>
@@ -184,7 +185,7 @@ export default function AskPage() {
       {result && (
         <section className="mt-14 space-y-12">
           <article className="space-y-5">
-            <p className="small-caps text-xs text-stone-400">Answer</p>
+            <p className="small-caps text-base text-stone-400">Answer</p>
             <div className="whitespace-pre-wrap font-serif text-xl leading-relaxed text-stone-100 md:text-[1.35rem]">
               {renderWithCitations(result.answer)}
             </div>
@@ -192,7 +193,7 @@ export default function AskPage() {
 
           {result.sources.length > 0 && (
             <aside className="border-t border-stone-900 pt-8">
-              <p className="small-caps text-xs text-stone-400">Sources</p>
+              <p className="small-caps text-base text-stone-400">Sources</p>
               <ol className="mt-5 space-y-5">
                 {result.sources.map((s, i) => {
                   const t =
@@ -200,7 +201,7 @@ export default function AskPage() {
                   return (
                     <li key={s.chunk_id}>
                       <a
-                        href={`/lessons/${s.video_id}?t=${t}`}
+                        href={`/lessons/${s.session_id}?v=${s.video_id}&t=${t}`}
                         className="group block"
                       >
                         <div className="grid grid-cols-[2rem_1fr] gap-4">
@@ -208,7 +209,7 @@ export default function AskPage() {
                             {i + 1}
                           </sup>
                           <div className="min-w-0">
-                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
+                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
                               <span className="inline-flex shrink-0 items-center gap-1 rounded bg-moss-500/10 px-1.5 py-0.5 font-mono tabular-nums text-moss-300 transition-colors group-hover:bg-moss-500/20">
                                 <span aria-hidden="true">▶</span>
                                 {fmtTimestamp(s.start_seconds)}
@@ -228,7 +229,7 @@ export default function AskPage() {
                             <p className="mt-2 text-sm leading-relaxed text-stone-400 transition-colors group-hover:text-stone-200">
                               {s.chunk_text}
                             </p>
-                            <p className="mt-1.5 font-mono text-xs text-stone-500">
+                            <p className="mt-1.5 font-mono text-sm text-stone-500">
                               relevance {(1 - Math.min(s.distance, 2) / 2).toFixed(2)}
                             </p>
                           </div>

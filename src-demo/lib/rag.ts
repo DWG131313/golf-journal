@@ -27,6 +27,7 @@ export async function embedQuery(text: string): Promise<number[]> {
 export type RetrievedChunk = {
   chunk_id: number;
   video_id: number;
+  session_id: number;
   segment_id: number | null;
   filename: string;
   recorded_at: string | null;
@@ -51,6 +52,7 @@ export function retrieveChunks(queryEmbedding: number[], k = 5): RetrievedChunk[
       `SELECT
          c.id AS chunk_id,
          c.video_id,
+         sv.session_id,
          c.segment_id,
          c.chunk_text,
          v.filename,
@@ -63,6 +65,7 @@ export function retrieveChunks(queryEmbedding: number[], k = 5): RetrievedChunk[
        FROM chunks_vec cv
        JOIN chunks   c ON c.id = cv.rowid
        JOIN videos   v ON v.id = c.video_id
+       JOIN session_videos sv ON sv.video_id = c.video_id
        LEFT JOIN segments s ON s.id = c.segment_id
        WHERE cv.embedding MATCH ? AND k = ?
        ORDER BY cv.distance`,

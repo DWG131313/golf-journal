@@ -30,7 +30,7 @@ export default function QuickAsk() {
       <button
         type="submit"
         disabled={!q.trim()}
-        className="small-caps absolute right-0 top-1/2 -translate-y-1/2 text-xs text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-500"
+        className="small-caps absolute right-0 top-1/2 -translate-y-1/2 text-base text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-500"
       >
         Ask →
       </button>

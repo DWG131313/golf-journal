@@ -30,7 +30,7 @@ function activeState(pathname: string, href: string): ActiveState {
 export default function SiteNav() {
   const pathname = usePathname();
   return (
-    <div className="flex items-baseline gap-7 text-xs uppercase tracking-[0.22em]">
+    <div className="flex items-baseline gap-7 text-sm uppercase tracking-[0.22em]">
       {links.map(({ href, label }) => {
         const state = activeState(pathname, href);
         const active = state !== "none";

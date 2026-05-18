@@ -48,6 +48,118 @@ export function listAllVideos(): VideoSummary[] {
     .all() as VideoSummary[];
 }
 
+// ----------------------------------------------------------------------
+// Sessions — a lesson is a coaching session (one date), which contains
+// one or more video recordings. Schema designed for this from the start;
+// session_videos is the junction table with `sequence` for ordering.
+// ----------------------------------------------------------------------
+export type Session = {
+  id: number;
+  date: string;
+  coach_id: number | null;
+  facility: string | null;
+  summary: string | null;
+};
+
+export type SessionSummary = Session & {
+  recording_count: number;
+  segment_count: number;
+  topic_count: number;
+  total_duration_seconds: number | null;
+  earliest_recorded_at: string | null;
+  latest_recorded_at: string | null;
+};
+
+export type SessionWithVideos = Session & {
+  videos: Video[];
+};
+
+export function listAllSessions(): SessionSummary[] {
+  return getDb()
+    .prepare(
+      `SELECT s.*,
+              COUNT(DISTINCT sv.video_id) AS recording_count,
+              (SELECT COUNT(*) FROM segments
+                 WHERE video_id IN (SELECT video_id FROM session_videos WHERE session_id = s.id)) AS segment_count,
+              (SELECT COUNT(*) FROM topic_mentions
+                 WHERE video_id IN (SELECT video_id FROM session_videos WHERE session_id = s.id)) AS topic_count,
+              (SELECT SUM(v.duration_seconds) FROM videos v
+                 JOIN session_videos sv2 ON sv2.video_id = v.id
+                 WHERE sv2.session_id = s.id) AS total_duration_seconds,
+              (SELECT MIN(v.recorded_at) FROM videos v
+                 JOIN session_videos sv2 ON sv2.video_id = v.id
+                 WHERE sv2.session_id = s.id) AS earliest_recorded_at,
+              (SELECT MAX(v.recorded_at) FROM videos v
+                 JOIN session_videos sv2 ON sv2.video_id = v.id
+                 WHERE sv2.session_id = s.id) AS latest_recorded_at
+       FROM sessions s
+       JOIN session_videos sv ON sv.session_id = s.id
+       GROUP BY s.id
+       ORDER BY s.date DESC`,
+    )
+    .all() as SessionSummary[];
+}
+
+export function getSessionById(id: number): SessionWithVideos | null {
+  const session = getDb()
+    .prepare("SELECT * FROM sessions WHERE id = ?")
+    .get(id) as Session | undefined;
+  if (!session) return null;
+  const videos = getDb()
+    .prepare(
+      `SELECT v.*
+       FROM videos v
+       JOIN session_videos sv ON sv.video_id = v.id
+       WHERE sv.session_id = ?
+       ORDER BY sv.sequence, v.recorded_at`,
+    )
+    .all(id) as Video[];
+  return { ...session, videos };
+}
+
+// Find which session a given video belongs to. Used when the data layer
+// only knows the video_id (legacy URLs, /api/ask, etc.) and we need to
+// build a session-aware URL.
+export function getSessionIdForVideo(videoId: number): number | null {
+  const row = getDb()
+    .prepare("SELECT session_id FROM session_videos WHERE video_id = ?")
+    .get(videoId) as { session_id: number } | undefined;
+  return row?.session_id ?? null;
+}
+
+// First segment titles + summaries for a set of sessions. Uses the first
+// video in each session (sequence=1) and its first segment by start time.
+// Returns the editorial "headline" for library rows + home recent-lesson card.
+export type SessionHeadline = {
+  session_id: number;
+  title: string | null;
+  summary: string | null;
+};
+
+export function getFirstSegmentForSessions(
+  sessionIds: number[],
+): Map<number, SessionHeadline> {
+  const map = new Map<number, SessionHeadline>();
+  if (sessionIds.length === 0) return map;
+  const placeholders = sessionIds.map(() => "?").join(",");
+  const rows = getDb()
+    .prepare(
+      `WITH first_video AS (
+         SELECT session_id, video_id
+         FROM session_videos sv
+         WHERE session_id IN (${placeholders})
+           AND sequence = (SELECT MIN(sequence) FROM session_videos WHERE session_id = sv.session_id)
+       )
+       SELECT fv.session_id, seg.title, seg.summary
+       FROM first_video fv
+       JOIN segments seg ON seg.video_id = fv.video_id
+       WHERE seg.start_seconds = (SELECT MIN(start_seconds) FROM segments WHERE video_id = fv.video_id)`,
+    )
+    .all(...sessionIds) as SessionHeadline[];
+  for (const r of rows) map.set(r.session_id, r);
+  return map;
+}
+
 export type StatusCount = { status: string; n: number };
 
 export function countByStatus(): StatusCount[] {
@@ -108,6 +220,7 @@ export function listSegmentsForVideo(videoId: number): Segment[] {
 export type TopicMentionRow = {
   id: number;
   video_id: number;
+  session_id: number;
   segment_id: number | null;
   topic_id: number;
   topic_name: string;
@@ -121,9 +234,10 @@ export type TopicMentionRow = {
 export function listTopicMentionsForVideo(videoId: number): TopicMentionRow[] {
   return getDb()
     .prepare(
-      `SELECT tm.*, t.name AS topic_name, t.category AS topic_category
+      `SELECT tm.*, sv.session_id, t.name AS topic_name, t.category AS topic_category
        FROM topic_mentions tm
        JOIN topics t ON t.id = tm.topic_id
+       JOIN session_videos sv ON sv.video_id = tm.video_id
        WHERE tm.video_id = ?
        ORDER BY tm.start_seconds`,
     )
@@ -133,6 +247,7 @@ export function listTopicMentionsForVideo(videoId: number): TopicMentionRow[] {
 export type DrillMentionRow = {
   id: number;
   video_id: number;
+  session_id: number;
   segment_id: number | null;
   drill_id: number;
   drill_name: string;
@@ -146,9 +261,10 @@ export type DrillMentionRow = {
 export function listDrillMentionsForVideo(videoId: number): DrillMentionRow[] {
   return getDb()
     .prepare(
-      `SELECT dm.*, d.name AS drill_name, d.category AS drill_category
+      `SELECT dm.*, sv.session_id, d.name AS drill_name, d.category AS drill_category
        FROM drill_mentions dm
        JOIN drills d ON d.id = dm.drill_id
+       JOIN session_videos sv ON sv.video_id = dm.video_id
        WHERE dm.video_id = ?
        ORDER BY dm.start_seconds`,
     )
@@ -173,9 +289,10 @@ export function listTopicsWithMentionCounts(): TopicWithCount[] {
               t.name,
               t.category,
               COUNT(tm.id) AS mention_count,
-              COUNT(DISTINCT tm.video_id) AS lesson_count
+              COUNT(DISTINCT sv.session_id) AS lesson_count
        FROM topics t
        LEFT JOIN topic_mentions tm ON tm.topic_id = t.id
+       LEFT JOIN session_videos sv ON sv.video_id = tm.video_id
        GROUP BY t.id
        ORDER BY mention_count DESC, t.name ASC`,
     )
@@ -183,6 +300,7 @@ export function listTopicsWithMentionCounts(): TopicWithCount[] {
 }
 
 export type TopicLessonMention = {
+  session_id: number;
   video_id: number;
   filename: string;
   recorded_at: string | null;
@@ -197,7 +315,8 @@ export type TopicLessonMention = {
 export function listMentionsForTopic(topicId: number): TopicLessonMention[] {
   return getDb()
     .prepare(
-      `SELECT tm.video_id,
+      `SELECT sv.session_id,
+              tm.video_id,
               v.filename,
               v.recorded_at,
               tm.start_seconds,
@@ -208,6 +327,7 @@ export function listMentionsForTopic(topicId: number): TopicLessonMention[] {
               s.summary AS segment_summary
        FROM topic_mentions tm
        JOIN videos v ON v.id = tm.video_id
+       JOIN session_videos sv ON sv.video_id = tm.video_id
        LEFT JOIN segments s ON s.id = tm.segment_id
        WHERE tm.topic_id = ?
        ORDER BY v.recorded_at DESC, tm.start_seconds ASC`,
@@ -289,10 +409,14 @@ export function listPracticeThemes(
 ): PracticeTheme[] {
   return getDb()
     .prepare(
-      `WITH recent AS (
-         SELECT id FROM videos
-         WHERE status IN ('analyzed','embedded')
-         ORDER BY recorded_at DESC LIMIT ?
+      `WITH recent_sessions AS (
+         SELECT id FROM sessions
+         ORDER BY date DESC LIMIT ?
+       ),
+       recent_videos AS (
+         SELECT sv.video_id
+         FROM session_videos sv
+         WHERE sv.session_id IN (SELECT id FROM recent_sessions)
        )
        SELECT t.id AS topic_id, t.name, t.category,
               COUNT(tm.id) AS mention_count,
@@ -300,7 +424,7 @@ export function listPracticeThemes(
        FROM topic_mentions tm
        JOIN topics t ON t.id = tm.topic_id
        JOIN videos v ON v.id = tm.video_id
-       WHERE tm.video_id IN (SELECT id FROM recent)
+       WHERE tm.video_id IN (SELECT video_id FROM recent_videos)
        GROUP BY t.id
        ORDER BY mention_count DESC, last_mentioned_at DESC
        LIMIT ?`,
@@ -316,6 +440,7 @@ export type RecentDrill = {
   category: string | null;
   description: string | null;
   last_mentioned_at: string | null;
+  session_id: number;
   video_id: number;
   start_seconds: number;
 };
@@ -326,10 +451,14 @@ export function listRecentDrills(
 ): RecentDrill[] {
   return getDb()
     .prepare(
-      `WITH recent AS (
-         SELECT id FROM videos
-         WHERE status IN ('analyzed','embedded')
-         ORDER BY recorded_at DESC LIMIT ?
+      `WITH recent_sessions AS (
+         SELECT id FROM sessions
+         ORDER BY date DESC LIMIT ?
+       ),
+       recent_videos AS (
+         SELECT sv.video_id, sv.session_id
+         FROM session_videos sv
+         WHERE sv.session_id IN (SELECT id FROM recent_sessions)
        ),
        latest_per_drill AS (
          SELECT d.id AS drill_id, d.name, d.category, d.description,
@@ -338,13 +467,14 @@ export function listRecentDrills(
          FROM drill_mentions dm
          JOIN drills d ON d.id = dm.drill_id
          JOIN videos v ON v.id = dm.video_id
-         WHERE dm.video_id IN (SELECT id FROM recent)
+         WHERE dm.video_id IN (SELECT video_id FROM recent_videos)
          GROUP BY d.id
        )
        SELECT l.drill_id, l.name, l.category, l.description, l.last_mentioned_at,
-              dm.video_id, dm.start_seconds
+              rv.session_id, dm.video_id, dm.start_seconds
        FROM latest_per_drill l
        JOIN drill_mentions dm ON dm.id = l.last_mention_id
+       JOIN recent_videos rv ON rv.video_id = dm.video_id
        ORDER BY l.last_mentioned_at DESC
        LIMIT ?`,
     )

@@ -1,6 +1,6 @@
 import {
-  listAllVideos,
-  getFirstSegmentForVideo,
+  listAllSessions,
+  getFirstSegmentForSessions,
   listPracticeThemes,
   listRecentDrills,
 } from "@/lib/db";
@@ -59,14 +59,16 @@ function distinctMonths(dates: string[]): number {
 }
 
 export default function HomePage() {
-  const all = listAllVideos();
-  const recent = all.find((v) => v.segment_count > 0) ?? null;
-  const recentSegment = recent ? getFirstSegmentForVideo(recent.id) : null;
+  const sessions = listAllSessions();
+  const recent = sessions.find((s) => s.segment_count > 0) ?? null;
+  const recentHeadline = recent
+    ? getFirstSegmentForSessions([recent.id]).get(recent.id) ?? null
+    : null;
   const themes = listPracticeThemes(5, 4);
   const drills = listRecentDrills(12, 6);
 
-  const validDates = all
-    .map((v) => v.recorded_at)
+  const validDates = sessions
+    .map((s) => s.earliest_recorded_at ?? s.date)
     .filter((s): s is string => Boolean(s));
   const earliest =
     validDates.length > 0
@@ -78,14 +80,15 @@ export default function HomePage() {
       : null;
 
   const monthsCount = distinctMonths(validDates);
-  const totalSegments = all.reduce((s, v) => s + v.segment_count, 0);
-  const totalTopicMentions = all.reduce((s, v) => s + v.topic_count, 0);
+  const totalSegments = sessions.reduce((acc, s) => acc + s.segment_count, 0);
+  const totalTopicMentions = sessions.reduce((acc, s) => acc + s.topic_count, 0);
+  const totalRecordings = sessions.reduce((acc, s) => acc + s.recording_count, 0);
 
   return (
     <main className="mx-auto max-w-4xl px-6 pb-28 pt-10 md:pt-14">
       {/* MASTHEAD — proportional, not dominant ------------------------ */}
       <header>
-        <p className="small-caps text-xs text-stone-500">A personal coaching archive</p>
+        <p className="small-caps text-base text-stone-400">A personal coaching archive</p>
         <h1 className="mt-3 font-serif text-5xl leading-[0.95] tracking-tight text-stone-100 md:text-6xl">
           Golf Journal.
         </h1>
@@ -100,7 +103,7 @@ export default function HomePage() {
 
       {/* QUICK ASK — primary affordance, top of page ----------------- */}
       <section className="mt-10 border-y border-stone-900 py-8">
-        <p className="small-caps mb-2 text-xs text-stone-400">Search the archive</p>
+        <p className="small-caps mb-2 text-base text-stone-400">Search the archive</p>
         <QuickAsk />
       </section>
 
@@ -108,9 +111,9 @@ export default function HomePage() {
       {recent && (
         <section className="mt-14">
           <div className="flex items-baseline justify-between border-b border-stone-900 pb-3">
-            <p className="small-caps text-xs text-stone-400">Most recent lesson</p>
-            <p className="font-mono text-xs tracking-[0.18em] text-stone-400">
-              {fmtMonthYear(recent.recorded_at)}
+            <p className="small-caps text-base text-stone-400">Most recent lesson</p>
+            <p className="font-mono text-sm tracking-[0.18em] text-stone-400">
+              {fmtMonthYear(recent.earliest_recorded_at)}
             </p>
           </div>
           <a
@@ -119,32 +122,37 @@ export default function HomePage() {
           >
             <div className="pt-1">
               <p className="font-mono text-xs uppercase tracking-[0.22em] text-stone-400">
-                {fmtMonthShortUpper(recent.recorded_at)}
+                {fmtMonthShortUpper(recent.earliest_recorded_at)}
               </p>
               <p className="mt-0.5 font-serif text-5xl leading-none text-stone-100 tabular-nums md:text-6xl">
-                {fmtDay(recent.recorded_at)}
+                {fmtDay(recent.earliest_recorded_at)}
               </p>
               <p className="mt-1.5 font-mono text-xs tracking-[0.18em] text-stone-400">
-                {fmtYear(recent.recorded_at)} · {fmtTime(recent.recorded_at)}
+                {fmtYear(recent.earliest_recorded_at)} · {fmtTime(recent.earliest_recorded_at)}
               </p>
             </div>
             <div className="self-start pt-1">
-              {recentSegment?.title && (
+              {recentHeadline?.title && (
                 <h2 className="font-serif text-2xl leading-snug text-stone-100 underline decoration-moss-500 decoration-2 underline-offset-[6px] transition-colors group-hover:text-moss-300 md:text-3xl">
-                  {recentSegment.title}
+                  {recentHeadline.title}
                 </h2>
               )}
-              {recentSegment?.summary && (
+              {recentHeadline?.summary && (
                 <p className="mt-3 max-w-prose text-base leading-relaxed text-stone-300 md:text-lg">
-                  {recentSegment.summary}
+                  {recentHeadline.summary}
                 </p>
               )}
               <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-stone-400 tabular-nums">
+                <span>
+                  {recent.recording_count}{" "}
+                  {recent.recording_count === 1 ? "recording" : "recordings"}
+                </span>
+                <span className="text-stone-800">·</span>
                 <span>{recent.segment_count} segments</span>
                 <span className="text-stone-800">·</span>
                 <span>{recent.topic_count} topics</span>
                 <span className="text-stone-800">·</span>
-                <span>{fmtDuration(recent.duration_seconds)}</span>
+                <span>{fmtDuration(recent.total_duration_seconds)}</span>
                 <span className="text-stone-800">·</span>
                 <span className="small-caps text-moss-300 group-hover:text-moss-300/70">
                   Open →
@@ -159,8 +167,8 @@ export default function HomePage() {
       {themes.length > 0 && (
         <section className="mt-14">
           <div className="flex items-baseline justify-between border-b border-stone-900 pb-3">
-            <p className="small-caps text-xs text-stone-400">Practice themes</p>
-            <p className="font-mono text-xs tracking-[0.18em] text-stone-400">
+            <p className="small-caps text-base text-stone-400">Practice themes</p>
+            <p className="font-mono text-sm tracking-[0.18em] text-stone-400">
               FROM YOUR LAST 5 LESSONS
             </p>
           </div>
@@ -192,7 +200,7 @@ export default function HomePage() {
           </ul>
           <a
             href="/topics"
-            className="small-caps mt-4 inline-block text-xs text-stone-400 transition-colors hover:text-stone-200"
+            className="small-caps mt-4 inline-block text-base text-stone-400 transition-colors hover:text-stone-200"
           >
             View all themes →
           </a>
@@ -203,8 +211,8 @@ export default function HomePage() {
       {drills.length > 0 && (
         <section className="mt-14">
           <div className="flex items-baseline justify-between border-b border-stone-900 pb-3">
-            <p className="small-caps text-xs text-stone-400">Drills to remember</p>
-            <p className="font-mono text-xs tracking-[0.18em] text-stone-400">
+            <p className="small-caps text-base text-stone-400">Drills to remember</p>
+            <p className="font-mono text-sm tracking-[0.18em] text-stone-400">
               FROM RECENT LESSONS
             </p>
           </div>
@@ -212,7 +220,7 @@ export default function HomePage() {
             {drills.map((d) => (
               <li key={d.drill_id}>
                 <a
-                  href={`/lessons/${d.video_id}?t=${Math.floor(d.start_seconds)}`}
+                  href={`/lessons/${d.session_id}?v=${d.video_id}&t=${Math.floor(d.start_seconds)}`}
                   className="group block border-l-2 border-moss-500/60 py-2 pl-3 transition-colors hover:bg-stone-900/30 active:bg-stone-900/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
                 >
                   <p className="font-serif text-lg text-stone-200 transition-colors group-hover:text-moss-300">
@@ -220,7 +228,7 @@ export default function HomePage() {
                   </p>
                   <div className="mt-1 flex items-baseline gap-3 text-sm text-stone-400">
                     {d.category && (
-                      <span className="small-caps text-xs text-stone-400">
+                      <span className="small-caps text-base text-stone-400">
                         {d.category}
                       </span>
                     )}
@@ -239,9 +247,9 @@ export default function HomePage() {
       <section className="mt-16 border-t border-stone-900 pt-10">
         <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
           <div>
-            <p className="small-caps text-xs text-stone-400">The whole collection</p>
+            <p className="small-caps text-base text-stone-400">The whole collection</p>
             <p className="mt-3 font-serif text-2xl italic leading-snug text-stone-300 md:text-3xl">
-              {all.length} lessons · {monthsCount} months · {totalSegments} segments · {totalTopicMentions} topic mentions
+              {sessions.length} lessons · {monthsCount} months · {totalRecordings} recordings · {totalSegments} segments · {totalTopicMentions} topic mentions
             </p>
           </div>
           <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
@@ -254,7 +262,7 @@ export default function HomePage() {
             </a>
             <a
               href="/topics"
-              className="small-caps text-xs text-stone-400 transition-colors hover:text-stone-200"
+              className="small-caps text-base text-stone-400 transition-colors hover:text-stone-200"
             >
               or by topic →
             </a>
