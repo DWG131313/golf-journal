@@ -60,7 +60,7 @@ function distinctMonths(dates: string[]): number {
 
 export default function HomePage() {
   const all = listAllVideos();
-  const recent = all[0] ?? null;
+  const recent = all.find((v) => v.segment_count > 0) ?? null;
   const recentSegment = recent ? getFirstSegmentForVideo(recent.id) : null;
   const themes = listPracticeThemes(5, 4);
   const drills = listRecentDrills(12, 6);
@@ -174,7 +174,7 @@ export default function HomePage() {
                   href={`/topics/${t.topic_id}`}
                   className="group grid grid-cols-[1fr_auto_auto] items-baseline gap-5 py-3 transition-colors hover:bg-stone-900/30 active:bg-stone-900/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
                 >
-                  <span className="font-serif text-lg italic text-stone-200 transition-colors group-hover:text-moss-300">
+                  <span className="min-w-0 truncate font-serif text-lg italic text-stone-200 transition-colors group-hover:text-moss-300">
                     {t.name}
                   </span>
                   <span className="font-mono text-sm tabular-nums text-stone-300">

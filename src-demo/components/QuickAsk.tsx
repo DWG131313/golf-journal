@@ -23,13 +23,14 @@ export default function QuickAsk() {
         type="text"
         value={q}
         onChange={(e) => setQ(e.target.value)}
+        aria-label="Search the archive"
         placeholder="Ask anything in plain English…"
         className="w-full bg-transparent py-5 pr-20 font-serif text-lg italic text-stone-100 placeholder:text-stone-500 focus:outline-none md:pr-32 md:text-3xl"
       />
       <button
         type="submit"
         disabled={!q.trim()}
-        className="small-caps absolute right-0 top-1/2 -translate-y-1/2 text-xs text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-700"
+        className="small-caps absolute right-0 top-1/2 -translate-y-1/2 text-xs text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-500"
       >
         Ask →
       </button>

@@ -82,7 +82,7 @@ export default async function TopicDetailPage({
           {topic.name}
         </h1>
         <p className="mt-5 font-mono text-xs uppercase tracking-[0.22em] text-stone-400 tabular-nums">
-          {mentions.length} mentions · {groups.length} lessons
+          {mentions.length} {mentions.length === 1 ? "mention" : "mentions"} · {groups.length} {groups.length === 1 ? "lesson" : "lessons"}
         </p>
         <hr className="mt-4 border-t border-moss-500/40" />
       </header>
@@ -120,18 +120,18 @@ export default async function TopicDetailPage({
                       href={`/lessons/${m.video_id}?t=${Math.floor(m.start_seconds)}`}
                       className="group block"
                     >
-                      <div className="flex items-baseline gap-3 text-sm">
-                        <span className="inline-flex items-center gap-1 rounded bg-moss-500/10 px-1.5 py-0.5 font-mono text-xs tabular-nums text-moss-300 transition-colors group-hover:bg-moss-500/20">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm">
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded bg-moss-500/10 px-1.5 py-0.5 font-mono text-xs tabular-nums text-moss-300 transition-colors group-hover:bg-moss-500/20">
                           <span aria-hidden="true">▶</span>
                           {fmtTimestamp(m.start_seconds)}
                         </span>
                         {m.segment_title && (
-                          <span className="font-serif italic text-stone-300">
+                          <span className="min-w-0 font-serif italic text-stone-300">
                             {m.segment_title}
                           </span>
                         )}
                         {m.speaker && (
-                          <span className="small-caps text-xs text-stone-400">
+                          <span className="small-caps shrink-0 text-xs text-stone-400">
                             {m.speaker}
                           </span>
                         )}

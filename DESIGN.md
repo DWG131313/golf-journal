@@ -53,8 +53,8 @@
 - **Approach:** Editorial — generous outer margins, no full-bleed, content can breathe.
 - **Max content width:**
   - Prose-heavy views (transcript, ask answer): `max-w-2xl` (672px)
-  - Index views (lessons list, topics list): `max-w-4xl` (896px) — current value good
-  - Lesson detail (video + structured content): `max-w-4xl`
+  - Home + lesson detail: `max-w-4xl` (896px)
+  - Topics index (`/topics`): `max-w-5xl` (1024px) — wider container holds category groupings comfortably
 - **Border radius (hierarchical):**
   - sm: 4px — small chips (timestamp buttons, status chips)
   - md: 6px — buttons
@@ -72,7 +72,8 @@
 
 | Component | Treatment |
 |---|---|
-| Page H1 | Instrument Serif 3xl–4xl, weight 400, stone-100 |
+| Page H1 (masthead) | Instrument Serif 5xl–6xl, weight 400, stone-100 — hero presence on home + topic detail |
+| Page H1 (secondary) | Instrument Serif 3xl–4xl, weight 400, stone-200 — used for italic subtitles like "{n} topics · {m} mentions" |
 | Section labels (`SEGMENTS`, `TOPICS`) | Geist xs, weight 500, uppercase, tracking-wider, stone-500 |
 | Lesson row date | Geist sm, weight 500, stone-200; status chip stone-800 bg, stone-400 text |
 | Lesson row filename | Geist xs, stone-500, truncated |
@@ -83,7 +84,7 @@
 | Quote (coach said …) | Geist sm italic, stone-400, leading-relaxed |
 | Citations [1] [2] | Fraunces sm, stone-500 |
 | Answer prose (ask page) | Geist base, stone-100, line-height 1.7 |
-| Primary button (Ask) | Stone-100 bg, stone-900 text, rounded md, weight 500 — keep monochrome, not moss |
+| Quick Ask submit | Editorial text-link affordance ("Ask →" in moss-300 small-caps), positioned absolute on the input's right edge. Bottom border on the input doubles as the field divider. Not a filled button — keeps the masthead reading like a journal, not a form. Disabled state uses stone-500 (4.5:1 contrast). |
 | Active/selected (e.g., a chosen filter pill) | moss-500 ring, moss-300 text |
 
 ## Risks taken (deliberate departures from convention)
@@ -98,3 +99,4 @@
 | 2026-05-15 | Initial design system: Editorial-Quiet | Personal journal use case; differentiates from SaaS convergence; warm + dignified reflects "moments, not records" framing |
 | 2026-05-17 | Switched display serif Fraunces → Instrument Serif | Fraunces variable-font axes rendered swashy WONK glyph alternates at large sizes (text-5xl+) that conflicted with the editorial-quiet aesthetic. Instrument Serif is single-axis, has a cleaner italic, and produces predictable glyphs at every size. |
 | 2026-05-17 | Added moss-tinted timestamp pill sub-pattern (theme-detail only) | Per Variant D plan-design-review: theme-detail timestamps act as "click to hear the coach at this moment" emotional anchors. Moss tint earns the deviation from the standard stone-800 timestamp chip. |
+| 2026-05-18 | Quick Ask is a text-link affordance, not a filled button | Editorial readability beats SaaS-button convention. The bottom border on the input acts as visual scaffolding; "Ask →" floats on the right edge in moss-300 small-caps. Updated H1 spec for masthead use at 5xl–6xl. Topics index uses `max-w-5xl` to hold category groupings. Captured during codex adversarial pass when the doc had drifted from shipped code. |
