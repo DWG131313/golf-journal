@@ -1,4 +1,4 @@
-# Design System — Golf Coach Demo
+# Design System — Golf Journal
 
 ## Product Context
 - **What this is:** A personal coaching journal — years of TrackMan video lessons transcribed, segmented, tagged, and made semantically searchable.
@@ -14,13 +14,13 @@
 - **Anti-patterns to avoid:** SaaS-dashboard convergence (Inter + cool zinc + 3-column feature grid), purple gradients, "pill" everything, system-ui fallback as the actual design choice.
 
 ## Typography
-- **Display / Hero:** **Fraunces** — warm contemporary serif with optical sizing. Use for `<h1>` page titles, lesson title headers (`Lesson · May 8, 2026`), large numbers/metrics. Weight 400, optical-size soft, tight line-height (1.05–1.15).
+- **Display / Hero:** **Instrument Serif** — single-axis editorial serif with an exquisite italic. Use for `<h1>` page titles, lesson title headers (`Lesson · May 8, 2026`), large numbers/metrics, pull quotes. Weight 400, both normal and italic. (Switched from Fraunces on 2026-05-17 — see Decisions Log.)
 - **Body:** **Geist** — clean modern sans with subtle warmth. Use for paragraph copy, descriptions, list rows, transcripts. Weight 400 normal / 500 emphasis.
-- **UI labels:** **Geist** small caps tracked uppercase (`tracking-wider`) for section headers like "SEGMENTS", "TOPICS". Weight 500, zinc/stone-500.
+- **UI labels:** **Geist** via the `.small-caps` utility (`font-variant: all-small-caps; letter-spacing: 0.06em`) for section headers like "SEGMENTS", "TOPICS", "PRACTICE THEMES", "RECENT MENTIONS". Weight 500, stone-500.
 - **Data / Tables:** Geist with `tabular-nums` for counts (seg count, topic count, word count). Same family, locked-width digits.
 - **Code / Timestamps:** **JetBrains Mono** — use for clickable timestamp chips (`0:33`), distances in source panels, any technical metadata that should feel like coordinates, not language.
-- **Loading:** Self-host via `next/font/google` for Fraunces + Geist; JetBrains Mono via `next/font/google` as well. Preload display weight only; lazy-load others.
-- **Scale (rem):** xs(0.75) sm(0.875) base(1) lg(1.125) xl(1.25) 2xl(1.5) 3xl(1.875) 4xl(2.25) 5xl(3) — apply Fraunces to 2xl+, Geist to base/sm/xs.
+- **Loading:** Self-host via `next/font/google` for Instrument Serif + Geist + JetBrains Mono. Preload display weight only; lazy-load others.
+- **Scale (rem):** xs(0.75) sm(0.875) base(1) lg(1.125) xl(1.25) 2xl(1.5) 3xl(1.875) 4xl(2.25) 5xl(3) — apply Instrument Serif to 2xl+, Geist to base/sm/xs.
 
 ## Color
 - **Approach:** Restrained — neutrals do the work, a single accent for emphasis. No semantic color stack (no error-red / warning-yellow / success-green). Hierarchy comes from weight + opacity, not hue.
@@ -72,12 +72,13 @@
 
 | Component | Treatment |
 |---|---|
-| Page H1 | Fraunces 3xl–4xl, weight 400, stone-100, optical-size soft |
+| Page H1 | Instrument Serif 3xl–4xl, weight 400, stone-100 |
 | Section labels (`SEGMENTS`, `TOPICS`) | Geist xs, weight 500, uppercase, tracking-wider, stone-500 |
 | Lesson row date | Geist sm, weight 500, stone-200; status chip stone-800 bg, stone-400 text |
 | Lesson row filename | Geist xs, stone-500, truncated |
 | Lesson card metrics | Geist sm, tabular-nums, stone-400 |
 | Timestamp chip | JetBrains Mono xs in stone-800 bg, stone-200 text, rounded sm, hover stone-700 |
+| Theme timestamp pill | JetBrains Mono text-[10px], moss-500/10 bg, moss-300 text, rounded (4px), hover moss-500/20. Used inside theme-detail mention links as the "click to hear the coach at this exact moment" affordance. |
 | Topic chip | Geist xs, weight 500, uppercase tracked, stone-700 bg, stone-300 text, rounded sm |
 | Quote (coach said …) | Geist sm italic, stone-400, leading-relaxed |
 | Citations [1] [2] | Fraunces sm, stone-500 |
@@ -87,7 +88,7 @@
 
 ## Risks taken (deliberate departures from convention)
 1. **Warm stone instead of cool zinc.** Every AI-generated dashboard uses zinc/slate. Stone is immediately distinguishable and matches the personal-journal framing.
-2. **Serif for display.** The category convention is sans-everywhere. Fraunces for hero/title earns the "this is content, not data" feeling.
+2. **Serif for display.** The category convention is sans-everywhere. Instrument Serif for hero/title earns the "this is content, not data" feeling.
 3. **No semantic color stack.** No green-success, no red-error. The product is contemplative, not transactional — nothing here is urgent. Hierarchy through weight and opacity only.
 4. **Moss as the only accent.** Single color, deliberately. Golf-adjacent without being literal.
 
@@ -95,3 +96,5 @@
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-05-15 | Initial design system: Editorial-Quiet | Personal journal use case; differentiates from SaaS convergence; warm + dignified reflects "moments, not records" framing |
+| 2026-05-17 | Switched display serif Fraunces → Instrument Serif | Fraunces variable-font axes rendered swashy WONK glyph alternates at large sizes (text-5xl+) that conflicted with the editorial-quiet aesthetic. Instrument Serif is single-axis, has a cleaner italic, and produces predictable glyphs at every size. |
+| 2026-05-17 | Added moss-tinted timestamp pill sub-pattern (theme-detail only) | Per Variant D plan-design-review: theme-detail timestamps act as "click to hear the coach at this moment" emotional anchors. Moss tint earns the deviation from the standard stone-800 timestamp chip. |

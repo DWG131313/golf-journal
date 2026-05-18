@@ -68,9 +68,9 @@ export default async function TopicDetailPage({
     <main className="mx-auto max-w-4xl px-6 pb-24 pt-10">
       <a
         href="/topics"
-        className="small-caps text-xs text-stone-500 transition-colors hover:text-stone-200"
+        className="small-caps text-[11px] tracking-[0.18em] text-stone-500 transition-colors hover:text-stone-200"
       >
-        ← All topics
+        <span aria-hidden="true" className="text-moss-500">←</span> Themes
       </a>
 
       {/* Topic masthead */}
@@ -81,16 +81,18 @@ export default async function TopicDetailPage({
         <h1 className="mt-3 font-serif text-5xl leading-tight text-stone-100 md:text-6xl">
           {topic.name}
         </h1>
-        <p className="mt-5 font-serif text-lg italic text-stone-400">
-          {mentions.length} mention{mentions.length !== 1 ? "s" : ""} across{" "}
-          {groups.length} lesson{groups.length !== 1 ? "s" : ""}
+        <p className="mt-5 font-mono text-[11px] uppercase tracking-[0.22em] text-stone-500 tabular-nums">
+          {mentions.length} mentions · {groups.length} lessons
         </p>
+        <hr className="mt-4 border-t border-moss-500/40" />
       </header>
 
       {groups.length === 0 ? (
         <p className="mt-12 text-stone-500">No mentions recorded for this topic.</p>
       ) : (
-        <section className="mt-12 space-y-12">
+        <>
+        <p className="mt-10 small-caps text-[11px] text-stone-500">Recent mentions</p>
+        <section className="mt-4 space-y-12">
           {groups.map((g) => (
             <article key={g.video_id} className="grid grid-cols-[auto_1fr] gap-x-8">
               {/* Date display */}
@@ -119,7 +121,8 @@ export default async function TopicDetailPage({
                       className="group block"
                     >
                       <div className="flex items-baseline gap-3 text-xs">
-                        <span className="font-mono tabular-nums text-stone-500 transition-colors group-hover:text-moss-300">
+                        <span className="inline-flex items-center gap-1 rounded bg-moss-500/10 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-moss-300 transition-colors group-hover:bg-moss-500/20">
+                          <span aria-hidden="true">▶</span>
                           {fmtTimestamp(m.start_seconds)}
                         </span>
                         {m.segment_title && (
@@ -145,6 +148,7 @@ export default async function TopicDetailPage({
             </article>
           ))}
         </section>
+        </>
       )}
     </main>
   );

@@ -62,7 +62,7 @@ export default function HomePage() {
   const all = listAllVideos();
   const recent = all[0] ?? null;
   const recentSegment = recent ? getFirstSegmentForVideo(recent.id) : null;
-  const themes = listPracticeThemes(5, 7);
+  const themes = listPracticeThemes(5, 4);
   const drills = listRecentDrills(12, 6);
 
   const validDates = all
@@ -130,7 +130,7 @@ export default function HomePage() {
             </div>
             <div className="self-start pt-1">
               {recentSegment?.title && (
-                <h2 className="font-serif text-2xl leading-snug text-stone-100 transition-colors group-hover:text-moss-300 md:text-3xl">
+                <h2 className="font-serif text-2xl leading-snug text-stone-100 underline decoration-moss-500 decoration-2 underline-offset-[6px] transition-colors group-hover:text-moss-300 md:text-3xl">
                   {recentSegment.title}
                 </h2>
               )}
@@ -164,32 +164,38 @@ export default function HomePage() {
               FROM YOUR LAST 5 LESSONS
             </p>
           </div>
-          <ol className="mt-4">
-            {themes.map((t, i) => (
+          <ul className="mt-4">
+            {themes.map((t) => (
               <li
                 key={t.topic_id}
                 className="border-b border-stone-900/40 last:border-0"
               >
                 <a
                   href={`/topics/${t.topic_id}`}
-                  className="group grid grid-cols-[2rem_1fr_auto_auto] items-baseline gap-5 py-3 transition-colors hover:bg-stone-900/30"
+                  className="group grid grid-cols-[1fr_auto_auto] items-baseline gap-5 py-3 transition-colors hover:bg-stone-900/30 active:bg-stone-900/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
                 >
-                  <span className="font-mono text-xs text-stone-700 tabular-nums">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
                   <span className="font-serif text-lg italic text-stone-200 transition-colors group-hover:text-moss-300">
                     {t.name}
                   </span>
-                  <span className="text-xs text-stone-500 tabular-nums">
-                    {t.mention_count} {t.mention_count === 1 ? "mention" : "mentions"}
+                  <span className="font-mono text-xs tabular-nums text-stone-400">
+                    {t.mention_count}
                   </span>
-                  <span className="small-caps text-[10px] text-stone-600 tabular-nums">
-                    last · {fmtMonthDay(t.last_mentioned_at)}
+                  <span
+                    aria-hidden="true"
+                    className="text-moss-500 transition-colors group-hover:text-moss-300"
+                  >
+                    ›
                   </span>
                 </a>
               </li>
             ))}
-          </ol>
+          </ul>
+          <a
+            href="/topics"
+            className="small-caps mt-4 inline-block text-[11px] text-stone-500 transition-colors hover:text-stone-200"
+          >
+            View all themes →
+          </a>
         </section>
       )}
 
@@ -207,7 +213,7 @@ export default function HomePage() {
               <li key={d.drill_id}>
                 <a
                   href={`/lessons/${d.video_id}?t=${Math.floor(d.start_seconds)}`}
-                  className="group block py-2"
+                  className="group block border-l-2 border-moss-500/60 py-2 pl-3 transition-colors hover:bg-stone-900/30 active:bg-stone-900/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
                 >
                   <p className="font-serif text-lg text-stone-200 transition-colors group-hover:text-moss-300">
                     {d.name}
