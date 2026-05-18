@@ -14,15 +14,17 @@ const aliasParent: Record<string, string> = {
   "/lessons": "/library",
 };
 
-function isActive(pathname: string, href: string): boolean {
-  if (pathname === href) return true;
-  if (pathname.startsWith(href + "/")) return true;
+type ActiveState = "exact" | "ancestor" | "none";
+
+function activeState(pathname: string, href: string): ActiveState {
+  if (pathname === href) return "exact";
+  if (pathname.startsWith(href + "/")) return "ancestor";
   for (const [prefix, parent] of Object.entries(aliasParent)) {
     if (parent === href && (pathname === prefix || pathname.startsWith(prefix + "/"))) {
-      return true;
+      return "ancestor";
     }
   }
-  return false;
+  return "none";
 }
 
 export default function SiteNav() {
@@ -30,12 +32,15 @@ export default function SiteNav() {
   return (
     <div className="flex items-baseline gap-7 text-xs uppercase tracking-[0.22em]">
       {links.map(({ href, label }) => {
-        const active = isActive(pathname, href);
+        const state = activeState(pathname, href);
+        const active = state !== "none";
+        const ariaCurrent =
+          state === "exact" ? "page" : state === "ancestor" ? "true" : undefined;
         return (
           <a
             key={href}
             href={href}
-            aria-current={active ? "page" : undefined}
+            aria-current={ariaCurrent}
             className={`transition-colors ${
               active ? "text-moss-300" : "text-stone-400 hover:text-stone-100"
             }`}

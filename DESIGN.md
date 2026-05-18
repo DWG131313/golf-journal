@@ -79,7 +79,7 @@
 | Lesson row filename | Geist xs, stone-500, truncated |
 | Lesson card metrics | Geist sm, tabular-nums, stone-400 |
 | Timestamp chip | JetBrains Mono xs in stone-800 bg, stone-200 text, rounded sm, hover stone-700 |
-| Theme timestamp pill | JetBrains Mono text-[10px], moss-500/10 bg, moss-300 text, rounded (4px), hover moss-500/20. Used inside theme-detail mention links as the "click to hear the coach at this exact moment" affordance. |
+| Theme timestamp pill | JetBrains Mono text-xs (12px), moss-500/10 bg, moss-300 text, rounded (4px), hover moss-500/20. Used inside theme-detail mention links as the "click to hear the coach at this exact moment" affordance. (Bumped from text-[10px] during FINDING-003 readability pass.) |
 | Source citation timestamp (ask page) | Same spec as Theme timestamp pill. Anchors each citation in the answer sources list to the exact moment in the source lesson. |
 | Drill chip (lesson timeline) | Geist small-caps text-xs, moss-500/10 bg, moss-300 text, rounded (4px), ▸ glyph prefix. Variant of the theme-timestamp-pill pattern for non-time-based moss callouts. Used inline within segment bodies on lesson-detail timeline. |
 | Lesson detail date hero | Instrument Serif text-5xl on mobile, text-7xl at md, text-8xl at lg+, weight 400, stone-100, tabular-nums. Monumental at md+, comfortable at 375px. Deliberately the largest type element in the system — the detail surface earns the largest moment. |

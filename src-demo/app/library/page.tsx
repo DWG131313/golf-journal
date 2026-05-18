@@ -44,7 +44,9 @@ export default async function LibraryPage({
   searchParams: Promise<{ year?: string }>;
 }) {
   const sp = await searchParams;
-  const yearFilter = sp.year ? Number(sp.year) : null;
+  const yearParam = sp.year ? Number(sp.year) : null;
+  const yearFilter =
+    yearParam !== null && Number.isFinite(yearParam) ? yearParam : null;
 
   const all = listAllVideos();
   const titles = getFirstSegmentTitles(all.map((v) => v.id));

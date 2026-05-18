@@ -219,7 +219,7 @@ export default function AskPage() {
                               {s.segment_title && (
                                 <>
                                   <span className="text-stone-800" aria-hidden="true">·</span>
-                                  <span className="min-w-0 font-serif italic text-stone-300">
+                                  <span className="min-w-0 font-serif italic text-stone-300 [overflow-wrap:anywhere]">
                                     {s.segment_title}
                                   </span>
                                 </>

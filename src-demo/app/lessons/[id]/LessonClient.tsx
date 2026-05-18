@@ -276,10 +276,10 @@ export default function LessonClient({
                         {segDrills.map((m) => (
                           <span
                             key={`d-${m.id}`}
-                            className="small-caps inline-flex items-center gap-1 rounded bg-moss-500/10 px-1.5 py-0.5 text-xs text-moss-300"
+                            className="small-caps inline-flex max-w-full items-center gap-1 rounded bg-moss-500/10 px-1.5 py-0.5 text-xs text-moss-300 [overflow-wrap:anywhere]"
                           >
-                            <span aria-hidden="true">▸</span>
-                            {m.drill_name}
+                            <span aria-hidden="true" className="shrink-0">▸</span>
+                            <span className="min-w-0">{m.drill_name}</span>
                           </span>
                         ))}
                       </div>
