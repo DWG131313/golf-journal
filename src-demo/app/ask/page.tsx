@@ -55,6 +55,7 @@ function renderWithCitations(text: string) {
       return (
         <sup
           key={i}
+          aria-label={`Citation ${m[1]}`}
           className="font-serif italic text-moss-300 ml-0.5 text-[0.7em]"
         >
           {m[1]}
@@ -120,7 +121,7 @@ export default function AskPage() {
     <main className="mx-auto max-w-3xl px-6 pb-24 pt-12">
       {/* Masthead */}
       <header className="border-b border-stone-900 pb-10">
-        <p className="small-caps text-xs text-stone-500">Ask your coach</p>
+        <p className="small-caps text-xs text-stone-400">Ask your coach</p>
         <p className="mt-6 font-serif text-3xl italic leading-tight text-stone-200 md:text-4xl">
           A search across every lesson, in your coach&apos;s own words.
         </p>
@@ -132,20 +133,21 @@ export default function AskPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           rows={3}
+          aria-label="Ask your golf coach"
           placeholder="Ask anything…"
-          className="w-full resize-none border-b-2 border-stone-800 bg-transparent px-1 py-3 font-serif text-xl italic text-stone-100 placeholder:text-stone-700 focus:border-moss-500 focus:outline-none"
+          className="w-full resize-none border-b-2 border-stone-800 bg-transparent px-1 py-3 font-serif text-xl italic text-stone-100 placeholder:text-stone-500 focus:border-moss-500 focus:outline-none"
           autoFocus
         />
         <div className="flex items-center justify-between">
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="small-caps text-xs text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-700"
+            className="small-caps text-xs text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-500"
           >
             {loading ? "Searching the journal…" : "Ask →"}
           </button>
           {result && (
-            <span className="font-mono text-[10px] text-stone-600">
+            <span className="font-mono text-xs text-stone-400">
               {result.inputTokens}↓ {result.outputTokens}↑ tokens
             </span>
           )}
@@ -155,7 +157,7 @@ export default function AskPage() {
       {/* Examples */}
       {!result && !loading && (
         <section className="mt-12">
-          <p className="small-caps text-[11px] text-stone-600">Try, for instance</p>
+          <p className="small-caps text-xs text-stone-400">Try, for instance</p>
           <ul className="mt-4 space-y-2 font-serif italic text-stone-400">
             {EXAMPLE_QUERIES.map((q) => (
               <li key={q}>
@@ -182,7 +184,7 @@ export default function AskPage() {
       {result && (
         <section className="mt-14 space-y-12">
           <article className="space-y-5">
-            <p className="small-caps text-xs text-stone-500">Answer</p>
+            <p className="small-caps text-xs text-stone-400">Answer</p>
             <div className="whitespace-pre-wrap font-serif text-xl leading-relaxed text-stone-100 md:text-[1.35rem]">
               {renderWithCitations(result.answer)}
             </div>
@@ -190,7 +192,7 @@ export default function AskPage() {
 
           {result.sources.length > 0 && (
             <aside className="border-t border-stone-900 pt-8">
-              <p className="small-caps text-xs text-stone-500">Sources</p>
+              <p className="small-caps text-xs text-stone-400">Sources</p>
               <ol className="mt-5 space-y-5">
                 {result.sources.map((s, i) => {
                   const t =
@@ -202,31 +204,31 @@ export default function AskPage() {
                         className="group block"
                       >
                         <div className="grid grid-cols-[2rem_1fr] gap-4">
-                          <sup className="font-serif text-base italic text-moss-300">
+                          <sup className="font-serif text-lg italic text-moss-300">
                             {i + 1}
                           </sup>
-                          <div>
-                            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
+                          <div className="min-w-0">
+                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
+                              <span className="inline-flex shrink-0 items-center gap-1 rounded bg-moss-500/10 px-1.5 py-0.5 font-mono tabular-nums text-moss-300 transition-colors group-hover:bg-moss-500/20">
+                                <span aria-hidden="true">▶</span>
+                                {fmtTimestamp(s.start_seconds)}
+                              </span>
                               <span className="text-stone-300">
                                 {fmtDate(s.recorded_at)}
                               </span>
-                              <span className="text-stone-800">·</span>
-                              <span className="font-mono text-stone-500 tabular-nums">
-                                {fmtTimestamp(s.start_seconds)}
-                              </span>
                               {s.segment_title && (
                                 <>
-                                  <span className="text-stone-800">·</span>
-                                  <span className="font-serif italic text-stone-400">
+                                  <span className="text-stone-800" aria-hidden="true">·</span>
+                                  <span className="min-w-0 font-serif italic text-stone-300">
                                     {s.segment_title}
                                   </span>
                                 </>
                               )}
                             </div>
-                            <p className="mt-2 text-sm leading-relaxed text-stone-500 transition-colors group-hover:text-stone-300">
+                            <p className="mt-2 text-sm leading-relaxed text-stone-400 transition-colors group-hover:text-stone-200">
                               {s.chunk_text}
                             </p>
-                            <p className="mt-1.5 font-mono text-[10px] text-stone-700">
+                            <p className="mt-1.5 font-mono text-xs text-stone-500">
                               relevance {(1 - Math.min(s.distance, 2) / 2).toFixed(2)}
                             </p>
                           </div>

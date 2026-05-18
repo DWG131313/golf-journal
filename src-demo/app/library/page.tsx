@@ -72,10 +72,10 @@ export default async function LibraryPage({
       {/* Masthead */}
       <header className="border-b border-stone-900 pb-8">
         <div className="flex items-baseline justify-between">
-          <p className="small-caps text-xs text-stone-500">The full archive</p>
+          <p className="small-caps text-xs text-stone-400">The full archive</p>
           <a
             href="/topics"
-            className="small-caps text-[11px] text-stone-500 transition-colors hover:text-stone-200"
+            className="small-caps text-xs text-stone-400 transition-colors hover:text-stone-200"
           >
             or browse by topic →
           </a>
@@ -83,20 +83,20 @@ export default async function LibraryPage({
         <h1 className="mt-4 font-serif text-5xl leading-[0.95] tracking-tight text-stone-100 md:text-6xl">
           Library.
         </h1>
-        <p className="mt-4 font-serif text-lg italic text-stone-400">
+        <p className="mt-4 font-serif text-lg italic text-stone-300">
           {all.length} lessons across {groupByMonth(all).length} months.
         </p>
       </header>
 
       {/* Year filter chips */}
       <div className="mt-10 flex flex-wrap items-baseline gap-x-7 gap-y-2">
-        <span className="small-caps text-[11px] text-stone-600">Filter</span>
+        <span className="small-caps text-xs text-stone-400">Filter</span>
         <a
           href="/library"
           className={`small-caps text-xs transition-colors ${
             yearFilter == null
               ? "text-moss-300"
-              : "text-stone-500 hover:text-stone-200"
+              : "text-stone-400 hover:text-stone-200"
           }`}
         >
           All years
@@ -108,13 +108,13 @@ export default async function LibraryPage({
             className={`font-mono text-sm tabular-nums transition-colors ${
               y === yearFilter
                 ? "text-moss-300"
-                : "text-stone-500 hover:text-stone-200"
+                : "text-stone-400 hover:text-stone-200"
             }`}
           >
             {y}
           </a>
         ))}
-        <span className="ml-auto font-mono text-[10px] tabular-nums text-stone-600">
+        <span className="ml-auto font-mono text-xs tabular-nums text-stone-400">
           {filtered.length} shown
         </span>
       </div>
@@ -122,15 +122,25 @@ export default async function LibraryPage({
       {/* Grouped lessons */}
       <section className="mt-12 space-y-16">
         {groups.length === 0 ? (
-          <p className="text-stone-500">
-            No lessons in {yearFilter ?? "this archive"} yet.
-          </p>
+          <div>
+            <p className="text-stone-400">
+              No lessons in {yearFilter ?? "this archive"} yet.
+            </p>
+            {yearFilter != null && (
+              <a
+                href="/library"
+                className="small-caps mt-3 inline-block text-xs text-moss-300 transition-colors hover:text-moss-300/70"
+              >
+                <span aria-hidden="true">→</span> View all years
+              </a>
+            )}
+          </div>
         ) : (
           groups.map((g) => (
             <div key={g.key}>
               <header className="flex items-baseline justify-between border-b border-stone-900 pb-3">
-                <h3 className="font-serif text-2xl text-stone-200">{g.label}</h3>
-                <span className="small-caps text-[11px] text-stone-600 tabular-nums">
+                <h3 className="font-serif text-2xl italic text-stone-200">{g.label}</h3>
+                <span className="small-caps text-xs text-stone-400 tabular-nums">
                   {g.lessons.length} {g.lessons.length === 1 ? "lesson" : "lessons"}
                 </span>
               </header>
@@ -142,22 +152,22 @@ export default async function LibraryPage({
                   >
                     <a
                       href={`/lessons/${v.id}`}
-                      className="group -mx-3 grid grid-cols-[3.5rem_1fr_auto] items-baseline gap-6 rounded px-3 py-5 transition-colors hover:bg-stone-900/40"
+                      className="group -mx-3 grid grid-cols-[3.5rem_1fr_auto] items-baseline gap-6 rounded px-3 py-5 transition-colors hover:bg-stone-900/40 active:bg-stone-900/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
                     >
-                      <div className="font-serif text-3xl leading-none text-stone-300 tabular-nums transition-colors group-hover:text-stone-100">
+                      <div className="shrink-0 font-serif text-3xl leading-none text-stone-300 tabular-nums transition-colors group-hover:text-stone-100">
                         {fmtDay(v.recorded_at)}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-600">
+                        <p className="font-mono text-xs uppercase tracking-[0.22em] text-stone-400">
                           {fmtTime(v.recorded_at)}
                         </p>
                         <p className="mt-1.5 truncate text-base text-stone-200 transition-colors group-hover:text-moss-300">
                           {titles.get(v.id) || trimFilename(v.filename)}
                         </p>
                       </div>
-                      <div className="flex items-baseline gap-3 text-xs text-stone-600 tabular-nums">
+                      <div className="flex items-baseline gap-3 text-sm text-stone-400 tabular-nums">
                         <span>{v.segment_count} seg</span>
-                        <span className="text-stone-800">·</span>
+                        <span className="text-stone-800" aria-hidden="true">·</span>
                         <span>{v.topic_count} topics</span>
                       </div>
                     </a>

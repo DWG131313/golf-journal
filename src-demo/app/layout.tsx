@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Geist, JetBrains_Mono } from "next/font/google";
+import SiteNav from "@/components/SiteNav";
 import "./globals.css";
 
 // Instrument Serif — the editorial display serif. Single-axis, no quirky
@@ -52,17 +53,7 @@ export default function RootLayout({
             >
               Golf Journal
             </a>
-            <div className="flex items-baseline gap-7 text-[11px] uppercase tracking-[0.22em] text-stone-500">
-              <a href="/library" className="transition-colors hover:text-stone-100">
-                Library
-              </a>
-              <a href="/topics" className="transition-colors hover:text-stone-100">
-                Topics
-              </a>
-              <a href="/ask" className="transition-colors hover:text-stone-100">
-                Ask
-              </a>
-            </div>
+            <SiteNav />
           </div>
         </nav>
         {children}
