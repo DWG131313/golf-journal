@@ -98,7 +98,7 @@ export default async function TopicDetailPage({
               {/* Date display */}
               <a
                 href={`/lessons/${g.video_id}`}
-                className="group block pt-1"
+                className="group block min-w-[44px] pt-1"
                 title="Open lesson"
               >
                 <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-stone-500">
