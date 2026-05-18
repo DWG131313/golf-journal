@@ -1,15 +1,45 @@
 import base64
 import json
+import os
 import re
 import subprocess
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import anthropic
+
 from pipeline.src.cost import CostTracker
 
-# Backend: "api" uses anthropic SDK, "cli" uses claude code CLI
-BACKEND = "cli"
+
+def _load_env_local() -> None:
+    """Load .env.local from project root (Next.js convention).
+
+    Lightweight parser — no python-dotenv dependency. Only sets vars that
+    aren't already in the environment, so shell exports still win.
+    """
+    project_root = Path(__file__).resolve().parents[2]
+    env_file = project_root / ".env.local"
+    if not env_file.is_file():
+        return
+    for line in env_file.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip().removeprefix("export ").strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+_load_env_local()
+
+# Backend selection: env var `GOLF_COACH_BACKEND` wins, otherwise default to
+# "api" when ANTHROPIC_API_KEY is set and "cli" otherwise.
+BACKEND = os.environ.get(
+    "GOLF_COACH_BACKEND",
+    "api" if os.environ.get("ANTHROPIC_API_KEY") else "cli",
+)
 
 
 def build_analysis_prompt(
@@ -121,8 +151,6 @@ def _analyze_via_api(
     model: str,
 ) -> Dict:
     """Call Claude via the Anthropic API (requires ANTHROPIC_API_KEY)."""
-    import anthropic
-
     client = anthropic.Anthropic()
 
     content = []
@@ -260,7 +288,11 @@ def analyze_batch(
         frame_paths=frame_paths,
     )
 
-    if BACKEND == "cli":
+    backend = os.environ.get(
+        "GOLF_COACH_BACKEND",
+        "api" if os.environ.get("ANTHROPIC_API_KEY") else "cli",
+    )
+    if backend == "cli":
         return _analyze_via_cli_with_retry(
             prompt=prompt,
             cost_tracker=cost_tracker,

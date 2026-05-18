@@ -4,6 +4,12 @@ from pipeline.src.analyze import build_analysis_prompt, parse_analysis_response,
 from pipeline.src.cost import CostTracker
 
 
+def _force_api_backend(monkeypatch):
+    """Force the api backend regardless of the dev's local env."""
+    monkeypatch.setenv("GOLF_COACH_BACKEND", "api")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
+
 def test_build_analysis_prompt_coaching():
     prompt = build_analysis_prompt(
         transcript_chunk="Coach: Keep your head down",
@@ -42,7 +48,8 @@ def test_parse_analysis_response_with_markdown():
 
 
 @patch("pipeline.src.analyze.anthropic.Anthropic")
-def test_analyze_batch(mock_anthropic_class, tmp_data_dir):
+def test_analyze_batch(mock_anthropic_class, tmp_data_dir, monkeypatch):
+    _force_api_backend(monkeypatch)
     # Setup mock client and response
     mock_client = mock_anthropic_class.return_value
     mock_response = MagicMock()
