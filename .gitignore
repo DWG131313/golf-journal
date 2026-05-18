@@ -12,6 +12,7 @@ venv/
 node_modules/
 .next/
 next-env.d.ts
+*.tsbuildinfo
 
 # Environment
 .env
@@ -23,3 +24,8 @@ next-env.d.ts
 # Claude Code (per-machine state)
 .claude/settings.local.json
 .claude/worktrees/
+.claude/demo-mode-active
+
+# Personal demo prep artifacts
+Project prompts to share/
+.gstack/
