@@ -174,10 +174,14 @@ export type StreamEvent =
  *
  * If the query has no matching chunks, a synthetic answer is emitted as a
  * series of "delta" events followed by "done".
+ *
+ * `signal` is propagated to the Anthropic SDK so that closing the browser
+ * tab mid-answer aborts the upstream call instead of burning tokens to /dev/null.
  */
 export async function askWithRagStreaming(
   query: string,
   k = 5,
+  signal?: AbortSignal,
 ): Promise<ReadableStream<Uint8Array>> {
   const encoder = new TextEncoder();
 
@@ -214,12 +218,15 @@ export async function askWithRagStreaming(
       controller.enqueue(encodeEvent({ type: "sources", sources }));
 
       try {
-        const stream = await client.messages.stream({
-          model: CLAUDE_MODEL,
-          max_tokens: 1024,
-          system: systemPrompt,
-          messages: [{ role: "user", content: query }],
-        });
+        const stream = await client.messages.stream(
+          {
+            model: CLAUDE_MODEL,
+            max_tokens: 1024,
+            system: systemPrompt,
+            messages: [{ role: "user", content: query }],
+          },
+          { signal },
+        );
 
         for await (const event of stream) {
           if (
@@ -239,10 +246,23 @@ export async function askWithRagStreaming(
           }),
         );
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        controller.enqueue(encodeEvent({ type: "error", message }));
+        // AbortError on client disconnect is expected — the controller is
+        // already being torn down and there's no one to receive the event.
+        const name = err instanceof Error ? err.name : "";
+        if (name !== "AbortError") {
+          const message = err instanceof Error ? err.message : String(err);
+          try {
+            controller.enqueue(encodeEvent({ type: "error", message }));
+          } catch {
+            // Controller may already be closed.
+          }
+        }
       } finally {
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Already closed.
+        }
       }
     },
   });

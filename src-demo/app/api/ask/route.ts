@@ -16,6 +16,7 @@ export async function POST(req: Request) {
     const stream = await askWithRagStreaming(
       query.trim(),
       typeof k === "number" ? k : 5,
+      req.signal,
     );
 
     return new Response(stream, {
