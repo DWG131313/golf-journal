@@ -198,7 +198,7 @@ def analyze_transcript(
     try:
         response = client.messages.create(
             model=model,
-            max_tokens=4000,
+            max_tokens=16000,  # bumped from 4000 — long lessons (10+ min) exceeded the old limit and produced truncated JSON
             system=[{
                 "type": "text",
                 "text": SYSTEM_PROMPT,

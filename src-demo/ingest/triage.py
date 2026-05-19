@@ -53,12 +53,10 @@ def classify_and_route(
     if result.error:
         return "error", {"error": result.error, "filename": video_path.name}
 
-    if result.is_lesson and do_faststart:
-        if faststart_video(video_path):
-            # Bytes changed; refresh the hash so the DB row reflects the served file
-            new_hash = hash_file(video_path)
-            result = dataclass_replace(result, file_hash=new_hash)
-
+    # Duplicate check happens BEFORE faststart. Re-running ffmpeg faststart on an
+    # already-faststart file produces slightly different bytes (timestamps in
+    # metadata), so doing faststart first would drift the hash and miss the
+    # duplicate detection, leading to duplicate rows on every re-triage.
     existing = db.get_video_by_hash(result.file_hash)
     if existing:
         return "duplicate", {
@@ -66,7 +64,14 @@ def classify_and_route(
             "filename": existing.filename,
         }
 
+    if result.is_lesson and do_faststart:
+        if faststart_video(video_path):
+            # Bytes changed; refresh the hash so the DB row reflects the served file
+            new_hash = hash_file(video_path)
+            result = dataclass_replace(result, file_hash=new_hash)
+
     if result.is_lesson:
+        recorded_at = extract_recorded_at(video_path)
         video_id = db.insert_video(Video(
             source=source,
             filename=video_path.name,
@@ -74,9 +79,16 @@ def classify_and_route(
             file_hash=result.file_hash,
             duration_seconds=result.duration_seconds,
             speech_seconds=result.speech_seconds,
-            recorded_at=extract_recorded_at(video_path),
+            recorded_at=recorded_at,
             status="classified",
         ))
+        # Auto-create the session this video belongs to + link it. A "session"
+        # = a coaching day. Multiple recordings on the same date share one
+        # session row; downstream UI iterates sessions, not raw videos.
+        if recorded_at is not None:
+            session_id = db.find_or_create_session_for_date(recorded_at.date())
+            sequence = db.next_session_video_sequence(session_id)
+            db.add_video_to_session(session_id, video_id, sequence=sequence)
         return "kept", {
             "video_id": video_id,
             "speech_seconds": round(result.speech_seconds, 1),

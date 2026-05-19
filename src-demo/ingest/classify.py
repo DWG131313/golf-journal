@@ -191,6 +191,10 @@ _SCREENCAP_RE = re.compile(
 )
 # TrackMan native:  "2024-07-23_145011_<hex>.mov"
 _NATIVE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})")
+# iOS screen recordings:  "ScreenRecording_05-08-2025 12-29-16_1.mov"
+_SCREENREC_RE = re.compile(
+    r"ScreenRecording_(\d{1,2})-(\d{1,2})-(\d{4})[ _](\d{1,2})-(\d{2})-(\d{2})"
+)
 # Plain date fallback
 _DATE_ONLY_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
 
@@ -210,6 +214,17 @@ def extract_recorded_at(path: Path) -> Optional[datetime]:
                 hour = 0
             return datetime(
                 int(year), int(month), int(day), hour, int(minute), int(second)
+            )
+        except (ValueError, TypeError):
+            pass
+
+    m = _SCREENREC_RE.search(name)
+    if m:
+        try:
+            month, day, year, hour, minute, second = m.groups()
+            return datetime(
+                int(year), int(month), int(day),
+                int(hour), int(minute), int(second),
             )
         except (ValueError, TypeError):
             pass

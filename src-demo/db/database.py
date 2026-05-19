@@ -241,6 +241,38 @@ class Database:
         )
         self.conn.commit()
 
+    def find_or_create_session_for_date(
+        self, recorded_date, coach_id: Optional[int] = None
+    ) -> int:
+        """Return the session_id for (date, coach_id). Creates it if absent.
+
+        A coaching session = a date. Multiple video recordings on the
+        same day share one session. Called from triage.py whenever a
+        new video gets inserted so the videos table never produces
+        orphan rows missing from the session view.
+        """
+        row = self.conn.execute(
+            "SELECT id FROM sessions WHERE date = ? "
+            "AND (coach_id IS ? OR coach_id = ?)",
+            (recorded_date, coach_id, coach_id),
+        ).fetchone()
+        if row:
+            return row["id"]
+        return self.insert_session(Session(date=recorded_date, coach_id=coach_id))
+
+    def next_session_video_sequence(self, session_id: int) -> int:
+        """Next sequence number for adding a video to this session.
+
+        Linking new recordings preserves chronological order without
+        forcing the caller to count existing rows first.
+        """
+        row = self.conn.execute(
+            "SELECT COALESCE(MAX(sequence), 0) + 1 AS next "
+            "FROM session_videos WHERE session_id = ?",
+            (session_id,),
+        ).fetchone()
+        return int(row["next"]) if row else 1
+
     # ------------------------------------------------------------------
     # Transcripts & segments
     # ------------------------------------------------------------------
