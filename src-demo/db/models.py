@@ -83,6 +83,7 @@ class Topic:
     name: str
     id: Optional[int] = None
     category: Optional[str] = None              # 'mechanics' | 'mental' | 'short-game' | 'putting'
+    subcategory: Optional[str] = None           # 'Wrist' | 'Hip' | 'Club Face' | etc. — manual grouping label
 
 
 @dataclass

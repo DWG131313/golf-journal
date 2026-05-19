@@ -106,6 +106,53 @@ def _gather_text_in_range(whisper_segments: list, start: float, end: float) -> s
     )
 
 
+def build_vocabulary_block(db: Database) -> str:
+    """Build a text block listing the canonical topic + drill names already
+    in the DB. Prepended to the user message so the LLM stays consistent
+    with prior extractions across runs (e.g., emits "Club Path" not
+    "Club path", reuses "Setup" instead of inventing "Setup / Address").
+
+    Cheap (~500-1000 input tokens for a settled vocabulary) and dramatically
+    reduces the post-ingest dedup workload."""
+    topics = db.list_topics()
+    drills = db.list_drills()
+    if not topics and not drills:
+        return ""
+
+    from collections import defaultdict
+
+    by_cat: dict[tuple[str, Optional[str]], list[str]] = defaultdict(list)
+    for t in topics:
+        cat = t.category or "other"
+        by_cat[(cat, t.subcategory)].append(t.name)
+
+    lines = [
+        "EXISTING TOPIC VOCABULARY — prefer these exact names if they describe",
+        "what the coach is discussing. Only invent a new topic name when the",
+        "concept is genuinely not in this list. Match casing exactly.",
+        "",
+    ]
+    cat_order = ["fundamentals", "mechanics", "mental", "short-game", "putting", "equipment", "other"]
+    grouped_keys = sorted(
+        by_cat.keys(),
+        key=lambda k: (
+            cat_order.index(k[0]) if k[0] in cat_order else 999,
+            "" if k[1] is None else k[1],
+        ),
+    )
+    for cat, sub in grouped_keys:
+        label = f"  [{cat}" + (f" / {sub}" if sub else "") + "]"
+        for name in sorted(by_cat[(cat, sub)]):
+            lines.append(f"{label} {name}")
+
+    if drills:
+        lines.append("")
+        lines.append("EXISTING DRILL VOCABULARY — same rule:")
+        for d in sorted(drills, key=lambda x: x.name):
+            lines.append(f"  - {d.name}")
+    return "\n".join(lines)
+
+
 def analyze_transcript(
     video_id: int,
     db: Database,
@@ -130,12 +177,18 @@ def analyze_transcript(
         for s in whisper_segments
     )
 
-    user_msg = (
-        f"Lesson: {video.filename}\n"
-        f"Duration: {video.duration_seconds:.1f}s\n\n"
-        f"Transcript with timestamps:\n{transcript_block}\n\n"
-        f"Analyze and produce JSON per the schema."
-    )
+    vocabulary = build_vocabulary_block(db)
+    user_msg_parts = []
+    if vocabulary:
+        user_msg_parts.append(vocabulary)
+        user_msg_parts.append("")
+    user_msg_parts.append(f"Lesson: {video.filename}")
+    user_msg_parts.append(f"Duration: {video.duration_seconds:.1f}s")
+    user_msg_parts.append("")
+    user_msg_parts.append(f"Transcript with timestamps:\n{transcript_block}")
+    user_msg_parts.append("")
+    user_msg_parts.append("Analyze and produce JSON per the schema.")
+    user_msg = "\n".join(user_msg_parts)
 
     db.log_processing(ProcessingLog(
         stage="analyze", status="started", video_id=video_id,

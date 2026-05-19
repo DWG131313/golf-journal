@@ -266,24 +266,80 @@ class Database:
     # ------------------------------------------------------------------
     # Topics, drills, and timestamped mentions
     # ------------------------------------------------------------------
+    @staticmethod
+    def _canonicalize_name(name: str) -> tuple[str, str]:
+        """Return (normalized, base). Normalized = trimmed + whitespace
+        collapsed. Base = normalized with any trailing qualifier removed
+        (everything from " / " or " (" onward). Used to match LLM-extracted
+        names against canonical topics regardless of casing or sub-clause
+        formatting variants ("Setup / Address" → base "Setup")."""
+        normalized = " ".join(name.split())
+        base = normalized
+        for marker in (" / ", " ("):
+            idx = base.find(marker)
+            if idx > 0:
+                base = base[:idx].strip()
+        return normalized, base
+
     def find_or_create_topic(self, name: str, category: Optional[str] = None) -> int:
+        """Match LLM-proposed topic name against existing canonical topic.
+
+        Lookup order:
+          1. Exact match
+          2. Case-insensitive match on the normalized name
+          3. Case-insensitive match on the base (qualifier stripped)
+          4. INSERT new with the normalized name
+
+        This prevents the LLM's run-to-run variation ("Club Path" vs
+        "Club path", "Setup" vs "Setup / Address") from creating
+        duplicate topic rows on every fresh ingest.
+        """
+        normalized, base = self._canonicalize_name(name)
+        # 1. Exact match (hot path — most calls go here once vocabulary is stable)
         row = self.conn.execute(
-            "SELECT id FROM topics WHERE name = ?", (name,)
+            "SELECT id FROM topics WHERE name = ?", (normalized,)
         ).fetchone()
         if row:
             return row["id"]
-        return self._insert("topics", Topic(name=name, category=category))
+        # 2. Case-insensitive match
+        row = self.conn.execute(
+            "SELECT id FROM topics WHERE LOWER(name) = LOWER(?)", (normalized,)
+        ).fetchone()
+        if row:
+            return row["id"]
+        # 3. Strip qualifier and try again (only if base differs from normalized)
+        if base != normalized:
+            row = self.conn.execute(
+                "SELECT id FROM topics WHERE LOWER(name) = LOWER(?)", (base,)
+            ).fetchone()
+            if row:
+                return row["id"]
+        # 4. Genuinely new — store with normalized form
+        return self._insert("topics", Topic(name=normalized, category=category))
 
     def find_or_create_drill(
         self, name: str, description: Optional[str] = None, category: Optional[str] = None
     ) -> int:
+        """Same canonical-matching strategy as find_or_create_topic."""
+        normalized, base = self._canonicalize_name(name)
         row = self.conn.execute(
-            "SELECT id FROM drills WHERE name = ?", (name,)
+            "SELECT id FROM drills WHERE name = ?", (normalized,)
         ).fetchone()
         if row:
             return row["id"]
+        row = self.conn.execute(
+            "SELECT id FROM drills WHERE LOWER(name) = LOWER(?)", (normalized,)
+        ).fetchone()
+        if row:
+            return row["id"]
+        if base != normalized:
+            row = self.conn.execute(
+                "SELECT id FROM drills WHERE LOWER(name) = LOWER(?)", (base,)
+            ).fetchone()
+            if row:
+                return row["id"]
         return self._insert(
-            "drills", Drill(name=name, description=description, category=category)
+            "drills", Drill(name=normalized, description=description, category=category)
         )
 
     def list_topics(self) -> list[Topic]:
