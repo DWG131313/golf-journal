@@ -6,6 +6,7 @@ const links = [
   { href: "/library", label: "Library" },
   { href: "/topics", label: "Topics" },
   { href: "/ask", label: "Ask" },
+  { href: "/upload", label: "Upload" },
 ];
 
 // Routes whose URL parent isn't the nav link they belong under.
