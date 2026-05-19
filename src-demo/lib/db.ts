@@ -136,6 +136,43 @@ export type SessionHeadline = {
   summary: string | null;
 };
 
+// Recordings (videos) within a set of sessions, each annotated with the title
+// of its first segment — used as the per-recording scannable "topic of focus"
+// in the library. Returns one row per video, ordered chronologically.
+export type Recording = {
+  session_id: number;
+  video_id: number;
+  filename: string;
+  recorded_at: string | null;
+  duration_seconds: number | null;
+  segment_count: number;
+  topic_count: number;
+  headline: string | null;
+};
+
+export function listRecordingsForSessions(sessionIds: number[]): Recording[] {
+  if (sessionIds.length === 0) return [];
+  const placeholders = sessionIds.map(() => "?").join(",");
+  return getDb()
+    .prepare(
+      `SELECT
+         sv.session_id,
+         v.id AS video_id,
+         v.filename,
+         v.recorded_at,
+         v.duration_seconds,
+         (SELECT COUNT(*) FROM segments WHERE video_id = v.id) AS segment_count,
+         (SELECT COUNT(*) FROM topic_mentions WHERE video_id = v.id) AS topic_count,
+         (SELECT title FROM segments WHERE video_id = v.id
+            ORDER BY start_seconds LIMIT 1) AS headline
+       FROM session_videos sv
+       JOIN videos v ON v.id = sv.video_id
+       WHERE sv.session_id IN (${placeholders})
+       ORDER BY v.recorded_at, sv.sequence`,
+    )
+    .all(...sessionIds) as Recording[];
+}
+
 export function getFirstSegmentForSessions(
   sessionIds: number[],
 ): Map<number, SessionHeadline> {

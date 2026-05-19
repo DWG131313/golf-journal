@@ -1,7 +1,8 @@
 import {
   listAllSessions,
-  getFirstSegmentForSessions,
+  listRecordingsForSessions,
   type SessionSummary,
+  type Recording,
 } from "@/lib/db";
 
 // -------- format helpers --------
@@ -15,6 +16,9 @@ function fmtTime(s: string | null): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+function trimFilename(name: string): string {
+  return name.replace(/\.(mp4|mov|m4v|avi|mkv)$/i, "").slice(0, 64);
 }
 
 type MonthGroup = { key: string; label: string; lessons: SessionSummary[] };
@@ -47,7 +51,14 @@ export default async function LibraryPage({
     yearParam !== null && Number.isFinite(yearParam) ? yearParam : null;
 
   const all = listAllSessions();
-  const headlines = getFirstSegmentForSessions(all.map((s) => s.id));
+  const allRecordings = listRecordingsForSessions(all.map((s) => s.id));
+  const recordingsBySession = new Map<number, Recording[]>();
+  for (const r of allRecordings) {
+    if (!recordingsBySession.has(r.session_id)) {
+      recordingsBySession.set(r.session_id, []);
+    }
+    recordingsBySession.get(r.session_id)!.push(r);
+  }
 
   // Distinct years available in the data, sorted ascending
   const years = Array.from(
@@ -145,42 +156,51 @@ export default async function LibraryPage({
                   {g.lessons.length} {g.lessons.length === 1 ? "lesson" : "lessons"}
                 </span>
               </header>
-              <ul>
-                {g.lessons.map((s) => {
-                  const ref = s.earliest_recorded_at ?? s.date;
-                  const headline = headlines.get(s.id)?.title ?? null;
+              <ul className="divide-y divide-stone-900/40">
+                {g.lessons.map((session) => {
+                  const ref = session.earliest_recorded_at ?? session.date;
+                  const recordings = recordingsBySession.get(session.id) ?? [];
                   return (
-                    <li
-                      key={s.id}
-                      className="border-b border-stone-900/40 last:border-0"
-                    >
-                      <a
-                        href={`/lessons/${s.id}`}
-                        className="group -mx-3 grid grid-cols-[3.5rem_1fr_auto] items-baseline gap-6 rounded px-3 py-5 transition-colors hover:bg-stone-900/40 active:bg-stone-900/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
-                      >
-                        <div className="shrink-0 font-serif text-3xl leading-none text-stone-300 tabular-nums transition-colors group-hover:text-stone-100">
+                    <li key={session.id} className="py-4">
+                      <div className="grid grid-cols-[3.5rem_1fr] gap-6">
+                        {/* Date number — anchors the session, shown once */}
+                        <div className="shrink-0 pt-1 font-serif text-3xl leading-none text-stone-300 tabular-nums">
                           {fmtDay(ref)}
                         </div>
+                        {/* List of recordings under this date */}
                         <div className="min-w-0">
-                          <p className="font-mono text-sm uppercase tracking-[0.22em] text-stone-400">
-                            {fmtTime(ref)}
-                          </p>
-                          <p className="mt-1.5 truncate text-base text-stone-200 transition-colors group-hover:text-moss-300">
-                            {headline ?? "(no headline yet)"}
-                          </p>
-                        </div>
-                        <div className="flex items-baseline gap-3 text-sm text-stone-400 tabular-nums">
-                          {s.recording_count > 1 && (
-                            <>
-                              <span>{s.recording_count} rec</span>
-                              <span className="text-stone-800" aria-hidden="true">·</span>
-                            </>
+                          <ul className="space-y-1">
+                            {recordings.map((rec) => (
+                              <li key={rec.video_id}>
+                                <a
+                                  href={`/lessons/${session.id}?v=${rec.video_id}`}
+                                  className="group -mx-3 grid grid-cols-[1fr_auto] items-baseline gap-6 rounded px-3 py-3 transition-colors hover:bg-stone-900/40 active:bg-stone-900/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="font-mono text-sm uppercase tracking-[0.22em] text-stone-400">
+                                      {fmtTime(rec.recorded_at)}
+                                    </p>
+                                    <p className="mt-1.5 truncate text-base text-stone-200 transition-colors group-hover:text-moss-300">
+                                      {rec.headline ?? trimFilename(rec.filename)}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-baseline gap-3 text-sm text-stone-400 tabular-nums">
+                                    <span>{rec.segment_count} seg</span>
+                                    <span className="text-stone-800" aria-hidden="true">·</span>
+                                    <span>{rec.topic_count} topics</span>
+                                  </div>
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                          {/* Session aggregate footer — only when there's more than one recording */}
+                          {recordings.length > 1 && (
+                            <p className="mt-2 pl-3 font-mono text-xs uppercase tracking-[0.18em] text-stone-500 tabular-nums">
+                              {session.recording_count} recordings · {session.segment_count} segments · {session.topic_count} topics
+                            </p>
                           )}
-                          <span>{s.segment_count} seg</span>
-                          <span className="text-stone-800" aria-hidden="true">·</span>
-                          <span>{s.topic_count} topics</span>
                         </div>
-                      </a>
+                      </div>
                     </li>
                   );
                 })}
