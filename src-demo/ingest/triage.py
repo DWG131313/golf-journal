@@ -32,6 +32,27 @@ from models import Video, SkippedVideo
 
 VIDEO_EXTS = {".mp4", ".mov", ".m4v", ".avi", ".mkv"}
 
+# Next.js serves files at `/video/<name>` from this directory. We symlink
+# every newly-classified video here so the dashboard's <video> element can
+# stream it without an extra copy on disk.
+_PUBLIC_VIDEO_DIR = Path(__file__).resolve().parent.parent / "public" / "video"
+
+
+def _link_into_public_video(video_path: Path) -> None:
+    """Best-effort symlink so the lesson detail page can serve the file.
+
+    Idempotent — overwrites an existing symlink to the same target. Silent
+    on failure (logging would clutter triage output; a missing symlink shows
+    up immediately when the user opens the lesson detail page)."""
+    try:
+        _PUBLIC_VIDEO_DIR.mkdir(parents=True, exist_ok=True)
+        link = _PUBLIC_VIDEO_DIR / video_path.name
+        if link.is_symlink() or link.exists():
+            link.unlink()
+        link.symlink_to(video_path.resolve())
+    except OSError:
+        pass
+
 
 def classify_and_route(
     video_path: Path,
@@ -89,6 +110,8 @@ def classify_and_route(
             session_id = db.find_or_create_session_for_date(recorded_at.date())
             sequence = db.next_session_video_sequence(session_id)
             db.add_video_to_session(session_id, video_id, sequence=sequence)
+        # Make the file servable at /video/<name> for the lesson detail page.
+        _link_into_public_video(video_path)
         return "kept", {
             "video_id": video_id,
             "speech_seconds": round(result.speech_seconds, 1),
