@@ -444,6 +444,30 @@ class Database:
             results.append((chunk, r["distance"]))
         return results
 
+    def wipe_chunks_for_video(self, video_id: int) -> int:
+        """Delete all chunks (and their vec rows) for one video.
+
+        chunks_vec is a virtual table — no FK cascade — so the rowid rows
+        must be deleted explicitly before (or alongside) the chunks rows.
+        Returns the number of chunks removed.
+        """
+        ids = [
+            r["id"] for r in self.conn.execute(
+                "SELECT id FROM chunks WHERE video_id = ?", (video_id,)
+            ).fetchall()
+        ]
+        if not ids:
+            return 0
+        placeholders = ",".join("?" for _ in ids)
+        self.conn.execute(
+            f"DELETE FROM chunks_vec WHERE rowid IN ({placeholders})", ids
+        )
+        self.conn.execute(
+            "DELETE FROM chunks WHERE video_id = ?", (video_id,)
+        )
+        self.conn.commit()
+        return len(ids)
+
     # ------------------------------------------------------------------
     # Observability
     # ------------------------------------------------------------------

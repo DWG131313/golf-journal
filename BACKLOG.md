@@ -20,15 +20,6 @@ that term.
 results with reciprocal rank fusion (RRF) at query time in `lib/rag.ts`. Maybe
 ~2 hrs.
 
-### Chunk refinement
-**Why:** Today `chunks` ≈ `segments` (5-10 per video, each containing the full
-segment transcript). Long chunks dilute the embedding signal — a query about
-"grip" might rank a 2-minute chunk where grip is mentioned once equally with
-one where it's the focus.
-**Scope:** Re-chunk at ~300-token windows with ~50-token overlap, keep
-`segment_id` as a link so citations can still point at segment-level metadata.
-Re-embed everything. ~3 hrs + an `embed.py` revision.
-
 ---
 
 ## Knowledge synthesis
@@ -116,6 +107,11 @@ roadmap together — worth deciding as a single design pass.
 
 ## Done (recent)
 
+- Chunk refinement: 300-token windows with 50-token overlap via the embedder's
+  own tokenizer (`offset_mapping` preserves verbatim text). Re-embed wipes
+  `chunks_vec` rowids before `chunks`. 17 long segments split, 148 → 165 chunks.
+  Probe query "practice on the top deck" surfaces the buried line at d=1.017
+  (vs. an unrelated chunk at d=1.065 before). → `feat(rag)`
 - LLM-synthesized session titles + summaries → `feat(sessions)` `deb76d2`
 - API hardening: upload path traversal / DoS / subprocess cleanup, `/ask` abort
   on disconnect → `fix(api)` `9b95d8e`
