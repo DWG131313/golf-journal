@@ -315,6 +315,7 @@ export type TopicWithCount = {
   topic_id: number;
   name: string;
   category: string | null;
+  subcategory: string | null;
   mention_count: number;
   lesson_count: number;
 };
@@ -325,6 +326,7 @@ export function listTopicsWithMentionCounts(): TopicWithCount[] {
       `SELECT t.id AS topic_id,
               t.name,
               t.category,
+              t.subcategory,
               COUNT(tm.id) AS mention_count,
               COUNT(DISTINCT sv.session_id) AS lesson_count
        FROM topics t
