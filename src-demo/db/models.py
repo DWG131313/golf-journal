@@ -41,6 +41,7 @@ class Session:
     id: Optional[int] = None
     coach_id: Optional[int] = None
     facility: Optional[str] = None
+    title: Optional[str] = None
     summary: Optional[str] = None
     created_at: Optional[datetime] = None
 

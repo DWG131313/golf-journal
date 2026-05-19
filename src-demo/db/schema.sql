@@ -52,7 +52,8 @@ CREATE TABLE sessions (
   date        DATE NOT NULL,
   coach_id    INTEGER REFERENCES coaches(id),
   facility    TEXT,
-  summary     TEXT,                              -- LLM-written session recap
+  title       TEXT,                              -- LLM-written session headline
+  summary     TEXT,                              -- LLM-written session recap (1-2 sentences)
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

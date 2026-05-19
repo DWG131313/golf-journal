@@ -82,7 +82,11 @@ export default function LessonClient({
 
   // Use the first recording as the header anchor (earliest recorded_at).
   const firstVideo = videoBlocks[0]?.video ?? null;
-  const headline = videoBlocks[0]?.segments[0]?.title ?? null;
+  // Prefer the synthesized session.title (covers the whole coaching day).
+  // Fall back to the first segment of the first video for sessions that
+  // haven't been summarized yet.
+  const headline =
+    session.title ?? videoBlocks[0]?.segments[0]?.title ?? null;
 
   // Top topic across the whole session — used as a small editorial hint.
   const topTopic = useMemo(() => {
@@ -132,7 +136,12 @@ export default function LessonClient({
               {headline}
             </h1>
           )}
-          <div className="mt-4 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm text-stone-400 tabular-nums">
+          {session.summary && (
+            <p className="mt-4 max-w-2xl font-serif text-lg italic leading-relaxed text-stone-300 md:text-xl">
+              {session.summary}
+            </p>
+          )}
+          <div className="mt-5 flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm text-stone-400 tabular-nums">
             <span>{fmtDuration(totalDuration)}</span>
             <span className="text-stone-800" aria-hidden="true">
               ·

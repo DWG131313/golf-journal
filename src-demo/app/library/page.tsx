@@ -160,31 +160,56 @@ export default async function LibraryPage({
                 {g.lessons.map((session) => {
                   const ref = session.earliest_recorded_at ?? session.date;
                   const recordings = recordingsBySession.get(session.id) ?? [];
+                  // session.title is the synthesized editorial headline.
+                  // Falls back to the first recording's first-segment title
+                  // for sessions that haven't been summarized yet.
+                  const sessionTitle =
+                    session.title ??
+                    recordings[0]?.headline ??
+                    (recordings[0] ? trimFilename(recordings[0].filename) : "Untitled session");
                   return (
-                    <li key={session.id} className="py-4">
+                    <li key={session.id} className="py-5">
                       <div className="grid grid-cols-[3.5rem_1fr] gap-6">
                         {/* Date number — anchors the session, shown once */}
                         <div className="shrink-0 pt-1 font-serif text-3xl leading-none text-stone-300 tabular-nums">
                           {fmtDay(ref)}
                         </div>
-                        {/* List of recordings under this date */}
                         <div className="min-w-0">
-                          <ul className="space-y-1">
+                          {/* Session headline + summary — the editorial anchor.
+                              Clicking lands on the session detail page. */}
+                          <a
+                            href={`/lessons/${session.id}`}
+                            className="group block focus-visible:outline-none"
+                          >
+                            <h4 className="font-serif text-xl italic leading-snug text-stone-100 transition-colors group-hover:text-moss-300 md:text-2xl">
+                              {sessionTitle}
+                            </h4>
+                            {session.summary && (
+                              <p className="mt-2 text-sm leading-relaxed text-stone-400 transition-colors group-hover:text-stone-300">
+                                {session.summary}
+                              </p>
+                            )}
+                          </a>
+
+                          {/* Recordings within the session — nested as a quiet
+                              sub-list. Each row deep-links into the specific
+                              video within the session detail page. */}
+                          <ul className="mt-4 space-y-0 border-l border-stone-900 pl-4">
                             {recordings.map((rec) => (
                               <li key={rec.video_id}>
                                 <a
                                   href={`/lessons/${session.id}?v=${rec.video_id}`}
-                                  className="group -mx-3 grid grid-cols-[1fr_auto] items-baseline gap-6 rounded px-3 py-3 transition-colors hover:bg-stone-900/40 active:bg-stone-900/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
+                                  className="group -mx-3 grid grid-cols-[1fr_auto] items-baseline gap-6 rounded px-3 py-2 transition-colors hover:bg-stone-900/40 active:bg-stone-900/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-moss-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950"
                                 >
                                   <div className="min-w-0">
-                                    <p className="font-mono text-sm uppercase tracking-[0.22em] text-stone-400">
+                                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-stone-500">
                                       {fmtTime(rec.recorded_at)}
                                     </p>
-                                    <p className="mt-1.5 truncate text-base text-stone-200 transition-colors group-hover:text-moss-300">
+                                    <p className="mt-1 truncate text-sm text-stone-300 transition-colors group-hover:text-moss-300">
                                       {rec.headline ?? trimFilename(rec.filename)}
                                     </p>
                                   </div>
-                                  <div className="flex items-baseline gap-3 text-sm text-stone-400 tabular-nums">
+                                  <div className="flex items-baseline gap-3 text-xs text-stone-500 tabular-nums">
                                     <span>{rec.segment_count} seg</span>
                                     <span className="text-stone-800" aria-hidden="true">·</span>
                                     <span>{rec.topic_count} topics</span>
@@ -195,7 +220,7 @@ export default async function LibraryPage({
                           </ul>
                           {/* Session aggregate footer — only when there's more than one recording */}
                           {recordings.length > 1 && (
-                            <p className="mt-2 pl-3 font-mono text-xs uppercase tracking-[0.18em] text-stone-500 tabular-nums">
+                            <p className="mt-2 pl-4 font-mono text-xs uppercase tracking-[0.18em] text-stone-500 tabular-nums">
                               {session.recording_count} recordings · {session.segment_count} segments · {session.topic_count} topics
                             </p>
                           )}

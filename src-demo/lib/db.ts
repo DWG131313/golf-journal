@@ -58,6 +58,7 @@ export type Session = {
   date: string;
   coach_id: number | null;
   facility: string | null;
+  title: string | null;
   summary: string | null;
 };
 

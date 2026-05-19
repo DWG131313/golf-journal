@@ -282,7 +282,47 @@ def main() -> None:
             if errors:
                 print(f"  errors: {errors}")
 
+    # Session headline pass — generate title + summary for any session whose
+    # videos are all embedded and don't have a title yet. Cheap (~3-4s per
+    # session at Sonnet pricing). Failures here are logged but never break
+    # the main pipeline; the user can rerun via summarize_session.py.
+    if not args.dry_run:
+        _summarize_completed_sessions(db)
+
     db.close()
+
+
+def _summarize_completed_sessions(db: Database) -> None:
+    """Run summarize_session.py over any session whose title is still NULL
+    and whose videos have all reached 'embedded'."""
+    try:
+        from summarize_session import (
+            list_sessions_to_summarize,
+            summarize_session,
+        )
+    except ImportError as e:
+        print(f"  warn: could not import session summarizer ({e})", file=sys.stderr)
+        return
+
+    ids = list_sessions_to_summarize(db, force=False)
+    if not ids:
+        return
+
+    print()
+    print(f"=== Session headlines ({len(ids)} pending) ===")
+    try:
+        import anthropic
+        client = anthropic.Anthropic()
+    except Exception as e:
+        print(f"  warn: cannot summarize sessions — {e}", file=sys.stderr)
+        return
+
+    for sid in ids:
+        try:
+            result = summarize_session(sid, db, client=client)
+            print(f"  session {sid}: \"{result['title']}\"")
+        except Exception as e:
+            print(f"  session {sid}: FAILED — {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
