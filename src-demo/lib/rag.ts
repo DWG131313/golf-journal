@@ -154,3 +154,96 @@ export async function askWithRag(
     outputTokens: response.usage.output_tokens,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Streaming variant
+// ---------------------------------------------------------------------------
+
+export type StreamEvent =
+  | { type: "sources"; sources: RetrievedChunk[] }
+  | { type: "delta"; text: string }
+  | { type: "done"; inputTokens: number; outputTokens: number }
+  | { type: "error"; message: string };
+
+/**
+ * Returns a ReadableStream of SSE-encoded StreamEvent objects.
+ * The stream emits:
+ *   1. A single "sources" event immediately (before any tokens)
+ *   2. One "delta" event per text chunk from the model
+ *   3. A final "done" event with token counts
+ *
+ * If the query has no matching chunks, a synthetic answer is emitted as a
+ * series of "delta" events followed by "done".
+ */
+export async function askWithRagStreaming(
+  query: string,
+  k = 5,
+): Promise<ReadableStream<Uint8Array>> {
+  const encoder = new TextEncoder();
+
+  function encodeEvent(event: StreamEvent): Uint8Array {
+    return encoder.encode(`data: ${JSON.stringify(event)}\n\n`);
+  }
+
+  const embedding = await embedQuery(query);
+  const sources = retrieveChunks(embedding, k);
+
+  // No-match fast path: emit a canned answer without hitting the API.
+  if (sources.length === 0) {
+    const noMatchAnswer =
+      "I couldn't find anything in your lessons matching that question yet. " +
+      "The pipeline may still be embedding videos, or your question is on a " +
+      "topic your coaches haven't covered in the lessons we've processed.";
+
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encodeEvent({ type: "sources", sources: [] }));
+        controller.enqueue(encodeEvent({ type: "delta", text: noMatchAnswer }));
+        controller.enqueue(encodeEvent({ type: "done", inputTokens: 0, outputTokens: 0 }));
+        controller.close();
+      },
+    });
+  }
+
+  const systemPrompt = buildSystemPrompt(sources);
+  const client = getAnthropic();
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      // Emit sources immediately so the UI can render them before any tokens.
+      controller.enqueue(encodeEvent({ type: "sources", sources }));
+
+      try {
+        const stream = await client.messages.stream({
+          model: CLAUDE_MODEL,
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: [{ role: "user", content: query }],
+        });
+
+        for await (const event of stream) {
+          if (
+            event.type === "content_block_delta" &&
+            event.delta.type === "text_delta"
+          ) {
+            controller.enqueue(encodeEvent({ type: "delta", text: event.delta.text }));
+          }
+        }
+
+        const finalMessage = await stream.finalMessage();
+        controller.enqueue(
+          encodeEvent({
+            type: "done",
+            inputTokens: finalMessage.usage.input_tokens,
+            outputTokens: finalMessage.usage.output_tokens,
+          }),
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        controller.enqueue(encodeEvent({ type: "error", message }));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+}

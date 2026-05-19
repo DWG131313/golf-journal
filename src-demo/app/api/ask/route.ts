@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { askWithRag } from "@/lib/rag";
+import { askWithRagStreaming } from "@/lib/rag";
 
 export const runtime = "nodejs";  // needs better-sqlite3 + sqlite-vec native bindings
 
@@ -12,8 +12,19 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const result = await askWithRag(query.trim(), typeof k === "number" ? k : 5);
-    return NextResponse.json(result);
+
+    const stream = await askWithRagStreaming(
+      query.trim(),
+      typeof k === "number" ? k : 5,
+    );
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("ask error:", e);

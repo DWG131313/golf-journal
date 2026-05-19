@@ -16,13 +16,6 @@ type Source = {
   distance: number;
 };
 
-type Result = {
-  answer: string;
-  sources: Source[];
-  inputTokens: number;
-  outputTokens: number;
-};
-
 const EXAMPLE_QUERIES = [
   "What did Coach say about my grip?",
   "Drills I should be practicing for tempo",
@@ -48,6 +41,8 @@ function fmtTimestamp(s: number | null): string {
 }
 
 // Replace inline citations like [1], [2] with superscript footnote markers.
+// Safe to call on partial text — half-formed tokens like "[1" just render as
+// plain text until the closing "]" arrives.
 function renderWithCitations(text: string) {
   const parts = text.split(/(\[\d+\])/g);
   return parts.map((part, i) => {
@@ -71,32 +66,120 @@ export default function AskPage() {
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
   const [query, setQuery] = useState(initialQ);
-  const [result, setResult] = useState<Result | null>(null);
+
+  // Streaming state — kept separate so each can update independently.
+  const [answer, setAnswer] = useState<string>("");
+  const [sources, setSources] = useState<Source[] | null>(null);
+  const [inputTokens, setInputTokens] = useState<number | null>(null);
+  const [outputTokens, setOutputTokens] = useState<number | null>(null);
+
   const [loading, setLoading] = useState(false);
+  const [streaming, setStreaming] = useState(false); // true once first delta arrives
   const [error, setError] = useState<string | null>(null);
   const autoFiredRef = useRef(false);
+
+  // Whether we have any result content to show (answer started OR sources received)
+  const hasContent = answer.length > 0 || sources !== null;
 
   async function runQuery(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
+
+    // Reset all state
     setLoading(true);
+    setStreaming(false);
     setError(null);
-    setResult(null);
+    setAnswer("");
+    setSources(null);
+    setInputTokens(null);
+    setOutputTokens(null);
+
     try {
       const r = await fetch("/api/ask", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ query: trimmed }),
       });
+
       if (!r.ok) {
-        const err = await r.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${r.status}`);
+        // Non-SSE error response (e.g. 400 validation or 500 before streaming starts)
+        const err = await r.json().catch(() => ({})) as { error?: string };
+        throw new Error((err.error) || `HTTP ${r.status}`);
       }
-      setResult(await r.json());
+
+      const body = r.body;
+      if (!body) throw new Error("No response body");
+
+      const reader = body.getReader();
+      const decoder = new TextDecoder();
+      // Buffer for bytes that haven't yet formed a complete SSE line.
+      let lineBuffer = "";
+
+      // Parse and dispatch a single SSE event payload string.
+      function handleData(payload: string) {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(payload);
+        } catch {
+          // Malformed JSON — ignore
+          return;
+        }
+        if (typeof parsed !== "object" || parsed === null) return;
+        const evt = parsed as { type: string; [k: string]: unknown };
+
+        if (evt.type === "sources") {
+          setSources(evt.sources as Source[]);
+        } else if (evt.type === "delta") {
+          const text = evt.text as string;
+          setAnswer((prev) => prev + text);
+          // First delta: switch button label back to "Ask →"
+          setStreaming(true);
+        } else if (evt.type === "done") {
+          setInputTokens(evt.inputTokens as number);
+          setOutputTokens(evt.outputTokens as number);
+          setLoading(false);
+          setStreaming(false);
+        } else if (evt.type === "error") {
+          throw new Error(evt.message as string);
+        }
+      }
+
+      // Read chunks and process SSE lines.
+      // SSE format: "data: <payload>\n\n" — events are separated by blank lines.
+      // Network reads can split anywhere (including mid-line or mid-event), so
+      // we accumulate a line buffer and only process complete "data: ..." lines.
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        lineBuffer += decoder.decode(value, { stream: true });
+
+        // Split on newlines but keep incomplete trailing fragment in the buffer.
+        const lines = lineBuffer.split("\n");
+        // The last element is either "" (if chunk ended with \n) or an incomplete line.
+        lineBuffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            handleData(line.slice(6).trim());
+          }
+          // Blank lines and other SSE fields (event:, id:, retry:) are ignored.
+        }
+      }
+
+      // Flush any remaining buffered text through the decoder.
+      const tail = decoder.decode();
+      if (tail) {
+        lineBuffer += tail;
+        if (lineBuffer.startsWith("data: ")) {
+          handleData(lineBuffer.slice(6).trim());
+        }
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
+      setStreaming(false);
     }
   }
 
@@ -145,18 +228,18 @@ export default function AskPage() {
             disabled={loading || !query.trim()}
             className="small-caps text-base text-moss-300 transition-colors hover:text-moss-300/70 disabled:cursor-not-allowed disabled:text-stone-500"
           >
-            {loading ? "Searching the journal…" : "Ask →"}
+            {loading && !streaming ? "Searching the journal…" : "Ask →"}
           </button>
-          {result && (
+          {inputTokens !== null && outputTokens !== null && (
             <span className="font-mono text-sm text-stone-400">
-              {result.inputTokens}↓ {result.outputTokens}↑ tokens
+              {inputTokens}↓ {outputTokens}↑ tokens
             </span>
           )}
         </div>
       </form>
 
       {/* Examples */}
-      {!result && !loading && (
+      {!hasContent && !loading && (
         <section className="mt-12">
           <p className="small-caps text-base text-stone-400">Try, for instance</p>
           <ul className="mt-4 space-y-2 font-serif italic text-stone-400">
@@ -181,21 +264,23 @@ export default function AskPage() {
         </div>
       )}
 
-      {/* Answer */}
-      {result && (
+      {/* Answer + Sources — rendered as soon as content starts arriving */}
+      {hasContent && (
         <section className="mt-14 space-y-12">
-          <article className="space-y-5">
-            <p className="small-caps text-base text-stone-400">Answer</p>
-            <div className="whitespace-pre-wrap font-serif text-xl leading-relaxed text-stone-100 md:text-[1.35rem]">
-              {renderWithCitations(result.answer)}
-            </div>
-          </article>
+          {answer.length > 0 && (
+            <article className="space-y-5">
+              <p className="small-caps text-base text-stone-400">Answer</p>
+              <div className="whitespace-pre-wrap font-serif text-xl leading-relaxed text-stone-100 md:text-[1.35rem]">
+                {renderWithCitations(answer)}
+              </div>
+            </article>
+          )}
 
-          {result.sources.length > 0 && (
+          {sources !== null && sources.length > 0 && (
             <aside className="border-t border-stone-900 pt-8">
               <p className="small-caps text-base text-stone-400">Sources</p>
               <ol className="mt-5 space-y-5">
-                {result.sources.map((s, i) => {
+                {sources.map((s, i) => {
                   const t =
                     s.start_seconds != null ? Math.floor(s.start_seconds) : 0;
                   return (
